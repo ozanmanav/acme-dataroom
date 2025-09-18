@@ -1,23 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
   placeholder?: string;
+  debounceMs?: number;
 }
 
-export function SearchBar({ onSearch, placeholder = 'Search files and folders...' }: SearchBarProps) {
+export function SearchBar({ 
+  onSearch, 
+  placeholder = 'Search files and folders...', 
+  debounceMs = 300 
+}: SearchBarProps) {
   const [query, setQuery] = useState('');
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    (searchQuery: string) => {
+      const timeoutId = setTimeout(() => {
+        onSearch(searchQuery);
+      }, debounceMs);
+
+      return () => clearTimeout(timeoutId);
+    },
+    [onSearch, debounceMs]
+  );
+
+  // Effect to handle debounced search
+  useEffect(() => {
+    const cleanup = debouncedSearch(query);
+    return cleanup;
+  }, [query, debouncedSearch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Form submit için hemen search yap (debounce'u atla)
     onSearch(query);
   };
 
   const handleClear = () => {
     setQuery('');
+    // Clear işleminde hemen search yap
     onSearch('');
   };
 

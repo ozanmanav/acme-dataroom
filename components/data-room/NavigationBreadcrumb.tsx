@@ -12,16 +12,16 @@ export function NavigationBreadcrumb({ path, onNavigate }: NavigationBreadcrumbP
   return (
     <nav className="flex items-center space-x-2 py-4 px-6 bg-white border-b border-gray-200">
       <button
-        onClick={() => onNavigate('root')}
+        onClick={() => onNavigate(null)}
         className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 transition-colors duration-150"
       >
         <Home size={16} />
-        <span className="text-sm font-medium">Data Room</span>
+        <span className="text-sm font-medium">Ana Dizin</span>
       </button>
       
-      {path.length > 1 && (
+      {path.length > 0 && (
         <>
-          {path.slice(1).map((item, index) => (
+          {path.map((item, index) => (
             <div key={item.id} className="flex items-center space-x-2">
               <ChevronRight size={16} className="text-gray-400" />
               <button

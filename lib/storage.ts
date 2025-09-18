@@ -24,59 +24,10 @@ class DataRoomStorage {
 
   private async initializeStorage() {
     try {
-      // Check if we need to migrate from localStorage
-      await this.migrateFromLocalStorage();
-      
-      const folders = await this.getFolders();
-      if (folders.length === 0) {
-        const rootFolder: FolderItem = {
-          id: "root",
-          name: "Data Room",
-          parentId: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        await this.db.folders.add(rootFolder);
-      }
+      // Storage başlatıldı - artık migration veya otomatik klasör oluşturma yok
+      console.log("Storage initialized");
     } catch (error) {
       console.error("Failed to initialize storage:", error);
-    }
-  }
-
-  private async migrateFromLocalStorage() {
-    if (typeof window === "undefined") return;
-
-    const FOLDERS_KEY = "dataroom_folders";
-    const FILES_KEY = "dataroom_files";
-
-    try {
-      // Check if data exists in localStorage
-      const foldersData = localStorage.getItem(FOLDERS_KEY);
-      const filesData = localStorage.getItem(FILES_KEY);
-
-      if (foldersData || filesData) {
-        console.log("Migrating data from localStorage to IndexedDB...");
-
-        // Migrate folders
-        if (foldersData) {
-          const folders: FolderItem[] = JSON.parse(foldersData);
-          await this.db.folders.bulkAdd(folders);
-        }
-
-        // Migrate files
-        if (filesData) {
-          const files: FileItem[] = JSON.parse(filesData);
-          await this.db.files.bulkAdd(files);
-        }
-
-        // Clear localStorage after successful migration
-        localStorage.removeItem(FOLDERS_KEY);
-        localStorage.removeItem(FILES_KEY);
-        
-        console.log("Migration completed successfully");
-      }
-    } catch (error) {
-      console.error("Migration failed:", error);
     }
   }
 
@@ -102,7 +53,10 @@ class DataRoomStorage {
 
   async getFoldersByParent(parentId: string | null): Promise<FolderItem[]> {
     try {
-      return await this.db.folders.where("parentId").equals(parentId as any).toArray();
+      if (parentId === null) {
+        return await this.db.folders.filter(folder => folder.parentId === null).toArray();
+      }
+      return await this.db.folders.where("parentId").equals(parentId).toArray();
     } catch (error) {
       console.error("Failed to get folders by parent:", error);
       return [];
@@ -191,7 +145,10 @@ class DataRoomStorage {
 
   async getFilesByFolder(folderId: string | null): Promise<FileItem[]> {
     try {
-      return await this.db.files.where("folderId").equals(folderId as any).toArray();
+      if (folderId === null) {
+        return await this.db.files.filter(file => file.folderId === null).toArray();
+      }
+      return await this.db.files.where("folderId").equals(folderId).toArray();
     } catch (error) {
       console.error("Failed to get files by folder:", error);
       return [];
