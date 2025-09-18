@@ -211,7 +211,7 @@ export function FolderView({
               >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <Folder size={20} className="text-blue-500 mr-3 flex-shrink-0" />
+                    <Folder size={20} className="text-blue-500 mr-3 shrink-0" />
                     <span className="text-sm font-medium text-gray-900 truncate" title={folder.name}>
                       {folder.name}
                     </span>
@@ -247,7 +247,7 @@ export function FolderView({
               >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <FileText size={20} className="text-red-500 mr-3 flex-shrink-0" />
+                    <FileText size={20} className="text-red-500 mr-3 shrink-0" />
                     <span className="text-sm font-medium text-gray-900 truncate" title={file.name}>
                       {file.name}
                     </span>

@@ -157,7 +157,7 @@ export function FileUpload({ onUpload, onClose }: FileUploadProps) {
                     key={index}
                     className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
                   >
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       {fileItem.status === 'error' ? (
                         <AlertCircle size={20} className="text-red-500" />
                       ) : (
@@ -177,7 +177,7 @@ export function FileUpload({ onUpload, onClose }: FileUploadProps) {
                       )}
                     </div>
 
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       {fileItem.status === 'uploading' && (
                         <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                       )}

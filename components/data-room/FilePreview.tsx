@@ -26,7 +26,7 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
-            <FileText size={20} className="text-red-500 flex-shrink-0" />
+            <FileText size={20} className="text-red-500 shrink-0" />
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold text-gray-900 truncate" title={file.name}>
                 {file.name}

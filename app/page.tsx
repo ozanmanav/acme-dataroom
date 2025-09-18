@@ -192,7 +192,7 @@ export default function DataRoomPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-full mx-auto bg-white shadow-sm">
+      <div className="max-w-full mx-auto bg-white shadow-xs">
         {/* Navigation */}
         <NavigationBreadcrumb
           path={breadcrumbs}
