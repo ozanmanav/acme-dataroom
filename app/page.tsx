@@ -1,30 +1,30 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { FileItem, FolderItem, ViewMode, BreadcrumbItem } from '@/types';
-import { storage } from '@/lib/storage';
+import { useState, useEffect } from "react";
+import { FileItem, FolderItem, ViewMode, BreadcrumbItem } from "@/types";
+import { storage } from "@/lib/storage";
 import {
   generateUniqueFileName,
   readFileAsBase64,
   downloadFile,
-} from '@/lib/utils-data-room';
+} from "@/lib/utils-data-room";
 
 // Components
-import { NavigationBreadcrumb } from '@/components/data-room/NavigationBreadcrumb';
-import { Toolbar } from '@/components/data-room/Toolbar';
-import { FolderView } from '@/components/data-room/FolderView';
-import { FileUpload } from '@/components/data-room/FileUpload';
-import { CreateFolderModal } from '@/components/data-room/CreateFolderModal';
-import { RenameModal } from '@/components/data-room/RenameModal';
-import { DeleteConfirmModal } from '@/components/data-room/DeleteConfirmModal';
-import { FilePreview } from '@/components/data-room/FilePreview';
+import { NavigationBreadcrumb } from "@/components/data-room/NavigationBreadcrumb";
+import { Toolbar } from "@/components/data-room/Toolbar";
+import { FolderView } from "@/components/data-room/FolderView";
+import { FileUpload } from "@/components/data-room/FileUpload";
+import { CreateFolderModal } from "@/components/data-room/CreateFolderModal";
+import { RenameModal } from "@/components/data-room/RenameModal";
+import { DeleteConfirmModal } from "@/components/data-room/DeleteConfirmModal";
+import { FilePreview } from "@/components/data-room/FilePreview";
 
 export default function DataRoomPage() {
-  const [currentFolderId, setCurrentFolderId] = useState<string>('root');
+  const [currentFolderId, setCurrentFolderId] = useState<string>("root");
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
   // Modals
@@ -32,11 +32,11 @@ export default function DataRoomPage() {
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [renameItem, setRenameItem] = useState<{
     item: FolderItem | FileItem;
-    type: 'folder' | 'file';
+    type: "folder" | "file";
   } | null>(null);
   const [deleteItem, setDeleteItem] = useState<{
     item: FolderItem | FileItem;
-    type: 'folder' | 'file';
+    type: "folder" | "file";
   } | null>(null);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
 
@@ -45,13 +45,16 @@ export default function DataRoomPage() {
 
   // Load data
   useEffect(() => {
-    loadFolderContents();
-    updateBreadcrumbs();
+    const loadData = async () => {
+      await loadFolderContents();
+      await updateBreadcrumbs();
+    };
+    loadData();
   }, [currentFolderId]);
 
-  const updateBreadcrumbs = () => {
-    const path = storage.getFullPath(currentFolderId);
-    const breadcrumbItems = path.map(folder => ({
+  const updateBreadcrumbs = async () => {
+    const path = await storage.getFullPath(currentFolderId);
+    const breadcrumbItems = path.map((folder) => ({
       id: folder.id,
       name: folder.name,
       path: folder.id,
@@ -59,22 +62,22 @@ export default function DataRoomPage() {
     setBreadcrumbs(breadcrumbItems);
   };
 
-  const loadFolderContents = () => {
+  const loadFolderContents = async () => {
     if (isSearching) return;
-    
-    const folderData = storage.getFoldersByParent(currentFolderId);
-    const fileData = storage.getFilesByFolder(currentFolderId);
-    
+
+    const folderData = await storage.getFoldersByParent(currentFolderId);
+    const fileData = await storage.getFilesByFolder(currentFolderId);
+
     setFolders(folderData);
     setFiles(fileData);
   };
 
-  const handleSearch = (query: string) => {
+  const handleSearch = async (query: string) => {
     setSearchQuery(query);
     setIsSearching(!!query);
-    
+
     if (query) {
-      const results = storage.searchItems(query, currentFolderId);
+      const results = await storage.searchItems(query, currentFolderId);
       setFolders(results.folders);
       setFiles(results.files);
     } else {
@@ -83,57 +86,57 @@ export default function DataRoomPage() {
   };
 
   const handleNavigate = (folderId: string | null) => {
-    const targetId = folderId || 'root';
+    const targetId = folderId || "root";
     setCurrentFolderId(targetId);
-    setSearchQuery('');
+    setSearchQuery("");
     setIsSearching(false);
   };
 
   // File operations
   const handleFileUpload = async (uploadFiles: File[]) => {
-    const existingNames = files.map(f => f.name);
-    
+    const existingNames = files.map((f) => f.name);
+
     for (const file of uploadFiles) {
       try {
         const content = await readFileAsBase64(file);
         const uniqueName = generateUniqueFileName(file.name, existingNames);
-        
-        storage.createFile(uniqueName, content, file.size, currentFolderId);
+
+        await storage.createFile(uniqueName, content, file.size, currentFolderId);
         existingNames.push(uniqueName);
       } catch (error) {
-        console.error('Failed to upload file:', file.name, error);
+        console.error("Failed to upload file:", file.name, error);
         throw error;
       }
     }
-    
+
     loadFolderContents();
   };
 
   const handleCreateFolder = async (name: string) => {
-    storage.createFolder(name, currentFolderId);
+    await storage.createFolder(name, currentFolderId);
     loadFolderContents();
   };
 
   const handleRenameFolder = async (newName: string) => {
-    if (!renameItem || renameItem.type !== 'folder') return;
-    
-    storage.updateFolder(renameItem.item.id, { name: newName });
+    if (!renameItem || renameItem.type !== "folder") return;
+
+    await storage.updateFolder(renameItem.item.id, { name: newName });
     loadFolderContents();
   };
 
   const handleRenameFile = async (newName: string) => {
-    if (!renameItem || renameItem.type !== 'file') return;
-    
-    storage.updateFile(renameItem.item.id, { name: newName });
+    if (!renameItem || renameItem.type !== "file") return;
+
+    await storage.updateFile(renameItem.item.id, { name: newName });
     loadFolderContents();
   };
 
   const handleDeleteFolder = async () => {
-    if (!deleteItem || deleteItem.type !== 'folder') return;
-    
+    if (!deleteItem || deleteItem.type !== "folder") return;
+
     setIsDeleting(true);
     try {
-      storage.deleteFolder(deleteItem.item.id);
+      await storage.deleteFolder(deleteItem.item.id);
       loadFolderContents();
     } finally {
       setIsDeleting(false);
@@ -141,11 +144,11 @@ export default function DataRoomPage() {
   };
 
   const handleDeleteFile = async () => {
-    if (!deleteItem || deleteItem.type !== 'file') return;
-    
+    if (!deleteItem || deleteItem.type !== "file") return;
+
     setIsDeleting(true);
     try {
-      storage.deleteFile(deleteItem.item.id);
+      await storage.deleteFile(deleteItem.item.id);
       loadFolderContents();
     } finally {
       setIsDeleting(false);
@@ -158,46 +161,54 @@ export default function DataRoomPage() {
 
   // Get existing names for validation
   const getExistingNames = () => {
-    return [...folders.map(f => f.name), ...files.map(f => f.name)];
+    return [...folders.map((f) => f.name), ...files.map((f) => f.name)];
   };
 
-  const getDeleteItemInfo = () => {
-    if (!deleteItem) return { hasChildren: false, childrenCount: 0 };
-    
-    if (deleteItem.type === 'folder') {
-      const allFolders = storage.getFolders();
-      const allFiles = storage.getFiles();
-      
-      const countChildren = (folderId: string): number => {
-        const subFolders = allFolders.filter(f => f.parentId === folderId);
-        const subFiles = allFiles.filter(f => f.folderId === folderId);
-        
-        let count = subFolders.length + subFiles.length;
-        
-        subFolders.forEach(subFolder => {
-          count += countChildren(subFolder.id);
-        });
-        
-        return count;
-      };
-      
-      const childrenCount = countChildren(deleteItem.item.id);
-      return { hasChildren: childrenCount > 0, childrenCount };
-    }
-    
-    return { hasChildren: false, childrenCount: 0 };
-  };
+  const [deleteItemInfo, setDeleteItemInfo] = useState<{
+    hasChildren: boolean;
+    childrenCount: number;
+  }>({ hasChildren: false, childrenCount: 0 });
 
-  const deleteItemInfo = getDeleteItemInfo();
+  // Update delete item info when deleteItem changes
+  useEffect(() => {
+    const updateDeleteItemInfo = async () => {
+      if (!deleteItem) {
+        setDeleteItemInfo({ hasChildren: false, childrenCount: 0 });
+        return;
+      }
+
+      if (deleteItem.type === "folder") {
+        const allFolders = await storage.getFolders();
+        const allFiles = await storage.getFiles();
+
+        const countChildren = (folderId: string): number => {
+          const subFolders = allFolders.filter((f) => f.parentId === folderId);
+          const subFiles = allFiles.filter((f) => f.folderId === folderId);
+
+          let count = subFolders.length + subFiles.length;
+
+          subFolders.forEach((subFolder) => {
+            count += countChildren(subFolder.id);
+          });
+
+          return count;
+        };
+
+        const childrenCount = countChildren(deleteItem.item.id);
+        setDeleteItemInfo({ hasChildren: childrenCount > 0, childrenCount });
+      } else {
+        setDeleteItemInfo({ hasChildren: false, childrenCount: 0 });
+      }
+    };
+
+    updateDeleteItemInfo();
+  }, [deleteItem]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-full mx-auto bg-white shadow-xs">
         {/* Navigation */}
-        <NavigationBreadcrumb
-          path={breadcrumbs}
-          onNavigate={handleNavigate}
-        />
+        <NavigationBreadcrumb path={breadcrumbs} onNavigate={handleNavigate} />
 
         {/* Toolbar */}
         <Toolbar
@@ -216,10 +227,14 @@ export default function DataRoomPage() {
             viewMode={viewMode}
             onFolderClick={handleNavigate}
             onFileClick={setPreviewFile}
-            onRenameFolder={(folder) => setRenameItem({ item: folder, type: 'folder' })}
-            onDeleteFolder={(folder) => setDeleteItem({ item: folder, type: 'folder' })}
-            onRenameFile={(file) => setRenameItem({ item: file, type: 'file' })}
-            onDeleteFile={(file) => setDeleteItem({ item: file, type: 'file' })}
+            onRenameFolder={(folder) =>
+              setRenameItem({ item: folder, type: "folder" })
+            }
+            onDeleteFolder={(folder) =>
+              setDeleteItem({ item: folder, type: "folder" })
+            }
+            onRenameFile={(file) => setRenameItem({ item: file, type: "file" })}
+            onDeleteFile={(file) => setDeleteItem({ item: file, type: "file" })}
             onDownloadFile={handleDownloadFile}
           />
         </div>
@@ -245,7 +260,9 @@ export default function DataRoomPage() {
         <RenameModal
           currentName={renameItem.item.name}
           itemType={renameItem.type}
-          onRename={renameItem.type === 'folder' ? handleRenameFolder : handleRenameFile}
+          onRename={
+            renameItem.type === "folder" ? handleRenameFolder : handleRenameFile
+          }
           onClose={() => setRenameItem(null)}
           existingNames={getExistingNames()}
         />
@@ -257,17 +274,16 @@ export default function DataRoomPage() {
           itemType={deleteItem.type}
           hasChildren={deleteItemInfo.hasChildren}
           childrenCount={deleteItemInfo.childrenCount}
-          onConfirm={deleteItem.type === 'folder' ? handleDeleteFolder : handleDeleteFile}
+          onConfirm={
+            deleteItem.type === "folder" ? handleDeleteFolder : handleDeleteFile
+          }
           onClose={() => setDeleteItem(null)}
           isDeleting={isDeleting}
         />
       )}
 
       {previewFile && (
-        <FilePreview
-          file={previewFile}
-          onClose={() => setPreviewFile(null)}
-        />
+        <FilePreview file={previewFile} onClose={() => setPreviewFile(null)} />
       )}
     </div>
   );

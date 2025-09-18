@@ -1,61 +1,115 @@
-import { FileItem, FolderItem } from '@/types';
+import { FileItem, FolderItem } from "@/types";
+import Dexie, { Table } from "dexie";
+
+interface DataRoomDB extends Dexie {
+  folders: Table<FolderItem>;
+  files: Table<FileItem>;
+}
 
 class DataRoomStorage {
-  private readonly FOLDERS_KEY = 'dataroom_folders';
-  private readonly FILES_KEY = 'dataroom_files';
+  private db: DataRoomDB;
 
-  // Initialize with root folder if empty
   constructor() {
-    if (typeof window !== 'undefined') {
+    this.db = new Dexie("DataRoomDB") as DataRoomDB;
+    
+    this.db.version(1).stores({
+      folders: "id, name, parentId, createdAt, updatedAt",
+      files: "id, name, type, size, content, folderId, createdAt, updatedAt"
+    });
+
+    if (typeof window !== "undefined") {
       this.initializeStorage();
     }
   }
 
-  private initializeStorage() {
-    const folders = this.getFolders();
-    if (folders.length === 0) {
-      const rootFolder: FolderItem = {
-        id: 'root',
-        name: 'Data Room',
-        parentId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      this.saveToStorage(this.FOLDERS_KEY, [rootFolder]);
+  private async initializeStorage() {
+    try {
+      // Check if we need to migrate from localStorage
+      await this.migrateFromLocalStorage();
+      
+      const folders = await this.getFolders();
+      if (folders.length === 0) {
+        const rootFolder: FolderItem = {
+          id: "root",
+          name: "Data Room",
+          parentId: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        await this.db.folders.add(rootFolder);
+      }
+    } catch (error) {
+      console.error("Failed to initialize storage:", error);
     }
   }
 
-  private saveToStorage(key: string, data: any[]) {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(key, JSON.stringify(data));
-    }
-  }
+  private async migrateFromLocalStorage() {
+    if (typeof window === "undefined") return;
 
-  private getFromStorage<T>(key: string): T[] {
-    if (typeof window === 'undefined') {
-      return [];
+    const FOLDERS_KEY = "dataroom_folders";
+    const FILES_KEY = "dataroom_files";
+
+    try {
+      // Check if data exists in localStorage
+      const foldersData = localStorage.getItem(FOLDERS_KEY);
+      const filesData = localStorage.getItem(FILES_KEY);
+
+      if (foldersData || filesData) {
+        console.log("Migrating data from localStorage to IndexedDB...");
+
+        // Migrate folders
+        if (foldersData) {
+          const folders: FolderItem[] = JSON.parse(foldersData);
+          await this.db.folders.bulkAdd(folders);
+        }
+
+        // Migrate files
+        if (filesData) {
+          const files: FileItem[] = JSON.parse(filesData);
+          await this.db.files.bulkAdd(files);
+        }
+
+        // Clear localStorage after successful migration
+        localStorage.removeItem(FOLDERS_KEY);
+        localStorage.removeItem(FILES_KEY);
+        
+        console.log("Migration completed successfully");
+      }
+    } catch (error) {
+      console.error("Migration failed:", error);
     }
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : [];
   }
 
   // Folder operations
-  getFolders(): FolderItem[] {
-    return this.getFromStorage<FolderItem>(this.FOLDERS_KEY);
+  async getFolders(): Promise<FolderItem[]> {
+    try {
+      return await this.db.folders.toArray();
+    } catch (error) {
+      console.error("Failed to get folders:", error);
+      return [];
+    }
   }
 
-  getFolderById(id: string): FolderItem | null {
-    const folders = this.getFolders();
-    return folders.find(folder => folder.id === id) || null;
+  async getFolderById(id: string): Promise<FolderItem | null> {
+    try {
+      const folder = await this.db.folders.get(id);
+      return folder || null;
+    } catch (error) {
+      console.error("Failed to get folder by id:", error);
+      return null;
+    }
   }
 
-  getFoldersByParent(parentId: string | null): FolderItem[] {
-    const folders = this.getFolders();
-    return folders.filter(folder => folder.parentId === parentId);
+  async getFoldersByParent(parentId: string | null): Promise<FolderItem[]> {
+    try {
+      return await this.db.folders.where("parentId").equals(parentId as any).toArray();
+    } catch (error) {
+      console.error("Failed to get folders by parent:", error);
+      return [];
+    }
   }
 
-  createFolder(name: string, parentId: string | null): FolderItem {
-    const folders = this.getFolders();
+  async createFolder(name: string, parentId: string | null): Promise<FolderItem> {
     const newFolder: FolderItem = {
       id: `folder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name,
@@ -63,157 +117,196 @@ class DataRoomStorage {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
-    folders.push(newFolder);
-    this.saveToStorage(this.FOLDERS_KEY, folders);
-    return newFolder;
+
+    try {
+      await this.db.folders.add(newFolder);
+      return newFolder;
+    } catch (error) {
+      console.error("Failed to create folder:", error);
+      throw error;
+    }
   }
 
-  updateFolder(id: string, updates: Partial<Omit<FolderItem, 'id' | 'createdAt'>>): FolderItem | null {
-    const folders = this.getFolders();
-    const folderIndex = folders.findIndex(folder => folder.id === id);
-    
-    if (folderIndex === -1) return null;
-    
-    folders[folderIndex] = {
-      ...folders[folderIndex],
-      ...updates,
-      updatedAt: new Date(),
-    };
-    
-    this.saveToStorage(this.FOLDERS_KEY, folders);
-    return folders[folderIndex];
+  async updateFolder(
+    id: string,
+    updates: Partial<Omit<FolderItem, "id" | "createdAt">>
+  ): Promise<FolderItem | null> {
+    try {
+      const updatedData = {
+        ...updates,
+        updatedAt: new Date(),
+      };
+
+      await this.db.folders.update(id, updatedData);
+      return await this.getFolderById(id);
+    } catch (error) {
+      console.error("Failed to update folder:", error);
+      return null;
+    }
   }
 
-  deleteFolder(id: string): boolean {
-    if (id === 'root') return false; // Prevent root deletion
-    
-    const folders = this.getFolders();
-    const files = this.getFiles();
-    
-    // Get all descendant folder IDs
-    const getAllDescendants = (folderId: string): string[] => {
-      const children = folders.filter(f => f.parentId === folderId);
-      const descendants = [folderId];
-      
-      children.forEach(child => {
-        descendants.push(...getAllDescendants(child.id));
-      });
-      
-      return descendants;
-    };
-    
-    const foldersToDelete = getAllDescendants(id);
-    
-    // Delete folders
-    const remainingFolders = folders.filter(folder => !foldersToDelete.includes(folder.id));
-    this.saveToStorage(this.FOLDERS_KEY, remainingFolders);
-    
-    // Delete files in these folders
-    const remainingFiles = files.filter(file => file.folderId && !foldersToDelete.includes(file.folderId));
-    this.saveToStorage(this.FILES_KEY, remainingFiles);
-    
-    return true;
+  async deleteFolder(id: string): Promise<boolean> {
+    if (id === "root") return false; // Prevent root deletion
+
+    try {
+      const folders = await this.getFolders();
+      const files = await this.getFiles();
+
+      // Get all descendant folder IDs
+      const getAllDescendants = (folderId: string): string[] => {
+        const children = folders.filter((f) => f.parentId === folderId);
+        const descendants = [folderId];
+
+        children.forEach((child) => {
+          descendants.push(...getAllDescendants(child.id));
+        });
+
+        return descendants;
+      };
+
+      const foldersToDelete = getAllDescendants(id);
+
+      // Delete folders
+      await this.db.folders.where("id").anyOf(foldersToDelete).delete();
+
+      // Delete files in these folders
+      await this.db.files.where("folderId").anyOf(foldersToDelete).delete();
+
+      return true;
+    } catch (error) {
+      console.error("Failed to delete folder:", error);
+      return false;
+    }
   }
 
   // File operations
-  getFiles(): FileItem[] {
-    return this.getFromStorage<FileItem>(this.FILES_KEY);
+  async getFiles(): Promise<FileItem[]> {
+    try {
+      return await this.db.files.toArray();
+    } catch (error) {
+      console.error("Failed to get files:", error);
+      return [];
+    }
   }
 
-  getFilesByFolder(folderId: string | null): FileItem[] {
-    const files = this.getFiles();
-    return files.filter(file => file.folderId === folderId);
+  async getFilesByFolder(folderId: string | null): Promise<FileItem[]> {
+    try {
+      return await this.db.files.where("folderId").equals(folderId as any).toArray();
+    } catch (error) {
+      console.error("Failed to get files by folder:", error);
+      return [];
+    }
   }
 
-  getFileById(id: string): FileItem | null {
-    const files = this.getFiles();
-    return files.find(file => file.id === id) || null;
+  async getFileById(id: string): Promise<FileItem | null> {
+    try {
+      const file = await this.db.files.get(id);
+      return file || null;
+    } catch (error) {
+      console.error("Failed to get file by id:", error);
+      return null;
+    }
   }
 
-  createFile(name: string, content: string, size: number, folderId: string | null): FileItem {
-    const files = this.getFiles();
+  async createFile(
+    name: string,
+    content: string,
+    size: number,
+    folderId: string | null
+  ): Promise<FileItem> {
     const newFile: FileItem = {
       id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name,
-      type: 'pdf',
+      type: "pdf",
       size,
       content,
       folderId,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
-    files.push(newFile);
-    this.saveToStorage(this.FILES_KEY, files);
-    return newFile;
+
+    try {
+      await this.db.files.add(newFile);
+      return newFile;
+    } catch (error) {
+      console.error("Failed to create file:", error);
+      throw error;
+    }
   }
 
-  updateFile(id: string, updates: Partial<Omit<FileItem, 'id' | 'createdAt'>>): FileItem | null {
-    const files = this.getFiles();
-    const fileIndex = files.findIndex(file => file.id === id);
-    
-    if (fileIndex === -1) return null;
-    
-    files[fileIndex] = {
-      ...files[fileIndex],
-      ...updates,
-      updatedAt: new Date(),
-    };
-    
-    this.saveToStorage(this.FILES_KEY, files);
-    return files[fileIndex];
+  async updateFile(
+    id: string,
+    updates: Partial<Omit<FileItem, "id" | "createdAt">>
+  ): Promise<FileItem | null> {
+    try {
+      const updatedData = {
+        ...updates,
+        updatedAt: new Date(),
+      };
+
+      await this.db.files.update(id, updatedData);
+      return await this.getFileById(id);
+    } catch (error) {
+      console.error("Failed to update file:", error);
+      return null;
+    }
   }
 
-  deleteFile(id: string): boolean {
-    const files = this.getFiles();
-    const remainingFiles = files.filter(file => file.id !== id);
-    this.saveToStorage(this.FILES_KEY, remainingFiles);
-    return true;
+  async deleteFile(id: string): Promise<boolean> {
+    try {
+      await this.db.files.delete(id);
+      return true;
+    } catch (error) {
+      console.error("Failed to delete file:", error);
+      return false;
+    }
   }
 
   // Utility methods
-  getFullPath(folderId: string | null): FolderItem[] {
-    if (!folderId || folderId === 'root') {
-      const rootFolder = this.getFolderById('root');
+  async getFullPath(folderId: string | null): Promise<FolderItem[]> {
+    if (!folderId || folderId === "root") {
+      const rootFolder = await this.getFolderById("root");
       return rootFolder ? [rootFolder] : [];
     }
-    
-    const folders = this.getFolders();
+
+    const folders = await this.getFolders();
     const path: FolderItem[] = [];
     let currentId: string | null = folderId;
-    
+
     while (currentId) {
-      const folder = folders.find(f => f.id === currentId);
+      const folder = folders.find((f) => f.id === currentId);
       if (!folder) break;
-      
+
       path.unshift(folder);
       currentId = folder.parentId;
     }
-    
+
     return path;
   }
 
-  searchItems(query: string, folderId: string | null = null): { folders: FolderItem[], files: FileItem[] } {
-    const allFolders = this.getFolders();
-    const allFiles = this.getFiles();
-    
+  async searchItems(
+    query: string,
+    folderId: string | null = null
+  ): Promise<{ folders: FolderItem[]; files: FileItem[] }> {
+    const allFolders = await this.getFolders();
+    const allFiles = await this.getFiles();
+
     const lowerQuery = query.toLowerCase();
-    
-    let folders = allFolders.filter(folder => 
+
+    let folders = allFolders.filter((folder) =>
       folder.name.toLowerCase().includes(lowerQuery)
     );
-    
-    let files = allFiles.filter(file => 
+
+    let files = allFiles.filter((file) =>
       file.name.toLowerCase().includes(lowerQuery)
     );
-    
+
     // If folderId specified, filter to that folder's contents
     if (folderId !== null) {
-      folders = folders.filter(folder => folder.parentId === folderId);
-      files = files.filter(file => file.folderId === folderId);
+      folders = folders.filter((folder) => folder.parentId === folderId);
+      files = files.filter((file) => file.folderId === folderId);
     }
-    
+
     return { folders, files };
   }
 }
