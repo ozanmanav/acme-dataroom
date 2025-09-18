@@ -1,16 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { FileItem, FolderItem } from "@/types";
-import { useDataRoomStore } from "@/lib/stores/data-room-store";
-import { useUIStore } from "@/lib/stores/ui-store";
-import {
-  generateUniqueFileName,
-  readFileAsBase64,
-  downloadFile,
-} from "@/lib/utils-data-room";
+import { useDataRoomState } from "@/hooks/useDataRoomState";
+import { downloadFile } from "@/lib/utils-data-room";
 
 // Components
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LoadingSpinner, FullPageLoader } from "@/components/LoadingSpinner";
+import { ErrorAlert } from "@/components/ErrorAlert";
 import { NavigationBreadcrumb } from "@/components/data-room/NavigationBreadcrumb";
 import { Toolbar } from "@/components/data-room/Toolbar";
 import { FolderView } from "@/components/data-room/FolderView";
@@ -21,54 +18,28 @@ import { DeleteConfirmModal } from "@/components/data-room/DeleteConfirmModal";
 import { FilePreview } from "@/components/data-room/FilePreview";
 
 export default function DataRoomPage() {
-  // Data store
   const {
-    folders,
-    files,
-    breadcrumbs,
-    currentFolderId,
-    searchResults: dataSearchResults,
+    state,
+    displayData,
+    existingNames,
+    updateState,
+    clearError,
     loadFolderContents,
-    updateBreadcrumbs,
-    createFile,
-    updateFile,
-    deleteFile,
-    createFolder,
-    updateFolder,
-    deleteFolder,
     searchItems,
     clearSearch,
-    setCurrentFolderId,
-  } = useDataRoomStore();
-
-  // UI store
-  const {
-    viewMode,
-    showFileUpload,
-    showCreateFolder,
+    createFolder,
+    uploadFiles,
     renameItem,
     deleteItem,
-    previewFile,
-    isDeleting,
-    setViewMode,
-    setShowFileUpload,
-    setShowCreateFolder,
-    setRenameItem,
-    setDeleteItem,
-    setPreviewFile,
-    setIsDeleting,
-  } = useUIStore();
+    navigateToFolder,
+  } = useDataRoomState();
 
   // Initialize on mount
   useEffect(() => {
-    const initializeApp = async () => {
-      await loadFolderContents(null);
-      await updateBreadcrumbs(null);
-    };
-    initializeApp();
-  }, [loadFolderContents, updateBreadcrumbs]);
+    loadFolderContents(null);
+  }, []);
 
-  // Handle search
+  // Event handlers
   const handleSearch = async (query: string) => {
     if (query.trim()) {
       await searchItems(query);
@@ -77,169 +48,137 @@ export default function DataRoomPage() {
     }
   };
 
-  // Handle navigation
   const handleNavigate = async (folderId: string | null) => {
-    setCurrentFolderId(folderId);
-    await loadFolderContents(folderId);
-    updateBreadcrumbs(folderId);
+    await navigateToFolder(folderId);
   };
 
-  // File operations
-  const handleFileUpload = async (uploadFiles: File[]) => {
-    const existingNames = files.map((f) => f.name);
-
-    for (const file of uploadFiles) {
-      try {
-        const content = await readFileAsBase64(file);
-        const uniqueName = generateUniqueFileName(file.name, existingNames);
-
-        await createFile({
-          name: uniqueName,
-          type: "pdf",
-          content,
-          size: file.size,
-          folderId: currentFolderId,
-        });
-        existingNames.push(uniqueName);
-      } catch (error) {
-        console.error("Failed to upload file:", file.name, error);
-        throw error;
-      }
-    }
+  const handleFileUpload = async (files: File[]) => {
+    await uploadFiles(files);
   };
 
   const handleCreateFolder = async (name: string) => {
-    await createFolder(name, currentFolderId);
+    await createFolder(name);
   };
 
-  const handleRenameFolder = async (newName: string) => {
-    if (!renameItem || renameItem.type !== "folder") return;
-
-    await updateFolder(renameItem.item.id, { name: newName });
+  const handleRename = async (newName: string) => {
+    await renameItem(newName);
   };
 
-  const handleRenameFile = async (newName: string) => {
-    if (!renameItem || renameItem.type !== "file") return;
-
-    await updateFile(renameItem.item.id, { name: newName });
+  const handleDelete = async () => {
+    await deleteItem();
   };
 
-  const handleDeleteFolder = async () => {
-    if (!deleteItem || deleteItem.type !== "folder") return;
-
-    await deleteFolder(deleteItem.item.id);
-  };
-
-  const handleDeleteFile = async () => {
-    if (!deleteItem || deleteItem.type !== "file") return;
-
-    setIsDeleting(true);
-    try {
-      await deleteFile(deleteItem.item.id);
-      setDeleteItem(null);
-    } catch (error) {
-      console.error("Failed to delete file:", error);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleDownloadFile = (file: FileItem) => {
+  const handleDownloadFile = (file: any) => {
     downloadFile(file.content, file.name);
   };
 
-  // Get existing names for validation
-  const getExistingNames = () => {
-    return [...folders.map((f) => f.name), ...files.map((f) => f.name)];
-  };
-
-  // Display data - use search results if searching, otherwise use current folder data
-  const displayFolders = dataSearchResults
-    ? dataSearchResults.folders
-    : folders;
-  const displayFiles = dataSearchResults ? dataSearchResults.files : files;
+  // Show full page loader on initial load
+  if (state.isLoading && state.folders.length === 0 && state.files.length === 0) {
+    return <FullPageLoader text="Data Room yükleniyor..." />;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-full mx-auto bg-white shadow-xs">
-        {/* Navigation */}
-        <NavigationBreadcrumb path={breadcrumbs} onNavigate={handleNavigate} />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-full mx-auto bg-white shadow-xs">
+          {/* Error Alert */}
+          {state.error && (
+            <div className="p-4">
+              <ErrorAlert error={state.error} onClose={clearError} />
+            </div>
+          )}
 
-        {/* Toolbar */}
-        <Toolbar
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onCreateFolder={() => setShowCreateFolder(true)}
-          onUploadFiles={() => setShowFileUpload(true)}
-          onSearch={handleSearch}
-        />
-
-        {/* Main Content */}
-        <div className="min-h-[calc(100vh-200px)]">
-          <FolderView
-            folders={displayFolders}
-            files={displayFiles}
-            viewMode={viewMode}
-            onFolderClick={handleNavigate}
-            onFileClick={setPreviewFile}
-            onRenameFolder={(folder) =>
-              setRenameItem({ item: folder, type: "folder" })
-            }
-            onDeleteFolder={(folder) =>
-              setDeleteItem({ item: folder, type: "folder" })
-            }
-            onRenameFile={(file) => setRenameItem({ item: file, type: "file" })}
-            onDeleteFile={(file) => setDeleteItem({ item: file, type: "file" })}
-            onDownloadFile={handleDownloadFile}
+          {/* Navigation */}
+          <NavigationBreadcrumb 
+            path={state.breadcrumbs} 
+            onNavigate={handleNavigate} 
           />
+
+          {/* Toolbar */}
+          <Toolbar
+            viewMode={state.viewMode}
+            onViewModeChange={(mode) => updateState({ viewMode: mode })}
+            onCreateFolder={() => updateState({ showCreateFolder: true })}
+            onUploadFiles={() => updateState({ showFileUpload: true })}
+            onSearch={handleSearch}
+          />
+
+          {/* Main Content */}
+          <div className="min-h-[calc(100vh-200px)] relative">
+            {state.isLoading && (
+              <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+                <LoadingSpinner size="lg" text="Yükleniyor..." />
+              </div>
+            )}
+            
+            <FolderView
+              folders={displayData.folders}
+              files={displayData.files}
+              viewMode={state.viewMode}
+              onFolderClick={handleNavigate}
+              onFileClick={(file) => updateState({ previewFile: file })}
+              onRenameFolder={(folder) =>
+                updateState({ renameItem: { item: folder, type: "folder" } })
+              }
+              onDeleteFolder={(folder) =>
+                updateState({ deleteItem: { item: folder, type: "folder" } })
+              }
+              onRenameFile={(file) => 
+                updateState({ renameItem: { item: file, type: "file" } })
+              }
+              onDeleteFile={(file) => 
+                updateState({ deleteItem: { item: file, type: "file" } })
+              }
+              onDownloadFile={handleDownloadFile}
+            />
+          </div>
         </div>
+
+        {/* Modals */}
+        {state.showFileUpload && (
+          <FileUpload
+            onUpload={handleFileUpload}
+            onClose={() => updateState({ showFileUpload: false })}
+          />
+        )}
+
+        {state.showCreateFolder && (
+          <CreateFolderModal
+            onCreateFolder={handleCreateFolder}
+            onClose={() => updateState({ showCreateFolder: false })}
+            existingNames={existingNames}
+          />
+        )}
+
+        {state.renameItem && (
+          <RenameModal
+            currentName={state.renameItem.item.name}
+            itemType={state.renameItem.type}
+            onRename={handleRename}
+            onClose={() => updateState({ renameItem: null })}
+            existingNames={existingNames}
+          />
+        )}
+
+        {state.deleteItem && (
+          <DeleteConfirmModal
+            itemName={state.deleteItem.item.name}
+            itemType={state.deleteItem.type}
+            hasChildren={false}
+            childrenCount={0}
+            onConfirm={handleDelete}
+            onClose={() => updateState({ deleteItem: null })}
+            isDeleting={state.isDeleting}
+          />
+        )}
+
+        {state.previewFile && (
+          <FilePreview 
+            file={state.previewFile} 
+            onClose={() => updateState({ previewFile: null })} 
+          />
+        )}
       </div>
-
-      {/* Modals */}
-      {showFileUpload && (
-        <FileUpload
-          onUpload={handleFileUpload}
-          onClose={() => setShowFileUpload(false)}
-        />
-      )}
-
-      {showCreateFolder && (
-        <CreateFolderModal
-          onCreateFolder={handleCreateFolder}
-          onClose={() => setShowCreateFolder(false)}
-          existingNames={getExistingNames()}
-        />
-      )}
-
-      {renameItem && (
-        <RenameModal
-          currentName={renameItem.item.name}
-          itemType={renameItem.type}
-          onRename={
-            renameItem.type === "folder" ? handleRenameFolder : handleRenameFile
-          }
-          onClose={() => setRenameItem(null)}
-          existingNames={getExistingNames()}
-        />
-      )}
-
-      {deleteItem && (
-        <DeleteConfirmModal
-          itemName={deleteItem.item.name}
-          itemType={deleteItem.type}
-          hasChildren={false}
-          childrenCount={0}
-          onConfirm={
-            deleteItem.type === "folder" ? handleDeleteFolder : handleDeleteFile
-          }
-          onClose={() => setDeleteItem(null)}
-          isDeleting={isDeleting}
-        />
-      )}
-
-      {previewFile && (
-        <FilePreview file={previewFile} onClose={() => setPreviewFile(null)} />
-      )}
-    </div>
+    </ErrorBoundary>
   );
 }
