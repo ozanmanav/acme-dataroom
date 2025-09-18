@@ -73,7 +73,11 @@ export default function DataRoomPage() {
   };
 
   // Show full page loader on initial load
-  if (state.isLoading && state.folders.length === 0 && state.files.length === 0) {
+  if (
+    state.isLoading &&
+    state.folders.length === 0 &&
+    state.files.length === 0
+  ) {
     return <FullPageLoader text="Data Room yükleniyor..." />;
   }
 
@@ -89,9 +93,9 @@ export default function DataRoomPage() {
           )}
 
           {/* Navigation */}
-          <NavigationBreadcrumb 
-            path={state.breadcrumbs} 
-            onNavigate={handleNavigate} 
+          <NavigationBreadcrumb
+            path={state.breadcrumbs}
+            onNavigate={handleNavigate}
           />
 
           {/* Toolbar */}
@@ -110,7 +114,7 @@ export default function DataRoomPage() {
                 <LoadingSpinner size="lg" text="Yükleniyor..." />
               </div>
             )}
-            
+
             <FolderView
               folders={displayData.folders}
               files={displayData.files}
@@ -123,10 +127,10 @@ export default function DataRoomPage() {
               onDeleteFolder={(folder) =>
                 updateState({ deleteItem: { item: folder, type: "folder" } })
               }
-              onRenameFile={(file) => 
+              onRenameFile={(file) =>
                 updateState({ renameItem: { item: file, type: "file" } })
               }
-              onDeleteFile={(file) => 
+              onDeleteFile={(file) =>
                 updateState({ deleteItem: { item: file, type: "file" } })
               }
               onDownloadFile={handleDownloadFile}
@@ -164,18 +168,15 @@ export default function DataRoomPage() {
           <DeleteConfirmModal
             itemName={state.deleteItem.item.name}
             itemType={state.deleteItem.type}
-            hasChildren={false}
-            childrenCount={0}
             onConfirm={handleDelete}
             onClose={() => updateState({ deleteItem: null })}
-            isDeleting={state.isDeleting}
           />
         )}
 
         {state.previewFile && (
-          <FilePreview 
-            file={state.previewFile} 
-            onClose={() => updateState({ previewFile: null })} 
+          <FilePreview
+            file={state.previewFile}
+            onClose={() => updateState({ previewFile: null })}
           />
         )}
       </div>
