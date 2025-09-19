@@ -1,20 +1,24 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { Search, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from "react";
+import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
   placeholder?: string;
   debounceMs?: number;
+  disabled?: boolean;
 }
 
-export function SearchBar({ 
-  onSearch, 
-  placeholder = 'Search files and folders...', 
-  debounceMs = 300 
+export function SearchBar({
+  onSearch,
+  placeholder = "Search files and folders...",
+  debounceMs = 300,
+  disabled = false,
 }: SearchBarProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
 
   // Debounced search function
   const debouncedSearch = useCallback(
@@ -41,30 +45,36 @@ export function SearchBar({
   };
 
   const handleClear = () => {
-    setQuery('');
+    setQuery("");
     // Clear işleminde hemen search yap
-    onSearch('');
+    onSearch("");
   };
 
   return (
     <form onSubmit={handleSubmit} className="relative flex-1 max-w-md">
       <div className="relative">
-        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-        <input
+        <Search
+          size={18}
+          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+        />
+        <Input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-150"
+          disabled={disabled}
+          className="pl-10 pr-10"
         />
-        {query && (
-          <button
+        {query && !disabled && (
+          <Button
             type="button"
             onClick={handleClear}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-150"
+            variant="ghost"
+            size="sm"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
           >
             <X size={18} />
-          </button>
+          </Button>
         )}
       </div>
     </form>

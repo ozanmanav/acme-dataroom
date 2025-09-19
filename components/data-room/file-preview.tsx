@@ -43,12 +43,14 @@ export function FilePreview({ file, onClose }: FilePreviewProps) {
               <Download size={16} className="mr-2" />
               Download
             </Button>
-            <button
+            <Button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors duration-150 p-1"
+              variant="ghost"
+              size="sm"
+              className="text-gray-400 hover:text-gray-600"
             >
               <X size={24} />
-            </button>
+            </Button>
           </div>
         </div>
 

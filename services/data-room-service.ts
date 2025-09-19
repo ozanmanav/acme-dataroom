@@ -1,6 +1,9 @@
-import { FileItem, FolderItem, BreadcrumbItem } from '@/types';
-import { storage } from '@/lib/storage';
-import { generateUniqueFileName, readFileAsBase64 } from '@/lib/utils-data-room';
+import { FileItem, FolderItem, BreadcrumbItem } from "@/types";
+import { storage } from "@/lib/storage";
+import {
+  generateUniqueFileName,
+  readFileAsBase64,
+} from "@/lib/utils-data-room";
 
 export interface DataRoomServiceResult<T> {
   data?: T;
@@ -27,22 +30,27 @@ export class DataRoomService {
   /**
    * Load folder contents with breadcrumbs
    */
-  static async loadFolderContents(folderId: string | null): Promise<DataRoomServiceResult<FolderContents>> {
+  static async loadFolderContents(
+    folderId: string | null
+  ): Promise<DataRoomServiceResult<FolderContents>> {
     try {
       const [folders, files, breadcrumbs] = await Promise.all([
         storage.getFoldersByParent(folderId),
         storage.getFilesByFolder(folderId),
-        this.getBreadcrumbs(folderId)
+        this.getBreadcrumbs(folderId),
       ]);
 
       return {
         success: true,
-        data: { folders, files, breadcrumbs }
+        data: { folders, files, breadcrumbs },
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to load folder contents'
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to load folder contents",
       };
     }
   }
@@ -50,24 +58,26 @@ export class DataRoomService {
   /**
    * Search items across folders and files
    */
-  static async searchItems(query: string): Promise<DataRoomServiceResult<SearchResults>> {
+  static async searchItems(
+    query: string
+  ): Promise<DataRoomServiceResult<SearchResults>> {
     try {
       if (!query.trim()) {
         return {
           success: true,
-          data: { folders: [], files: [] }
+          data: { folders: [], files: [] },
         };
       }
 
       const results = await storage.searchItems(query);
       return {
         success: true,
-        data: results
+        data: results,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Search failed'
+        error: error instanceof Error ? error.message : "Search failed",
       };
     }
   }
@@ -75,12 +85,15 @@ export class DataRoomService {
   /**
    * Create a new folder
    */
-  static async createFolder(name: string, parentId: string | null): Promise<DataRoomServiceResult<FolderItem>> {
+  static async createFolder(
+    name: string,
+    parentId: string | null
+  ): Promise<DataRoomServiceResult<FolderItem>> {
     try {
       if (!name.trim()) {
         return {
           success: false,
-          error: 'Folder name cannot be empty'
+          error: "Folder name cannot be empty",
         };
       }
 
@@ -88,12 +101,13 @@ export class DataRoomService {
 
       return {
         success: true,
-        data: folder
+        data: folder,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to create folder'
+        error:
+          error instanceof Error ? error.message : "Failed to create folder",
       };
     }
   }
@@ -101,7 +115,11 @@ export class DataRoomService {
   /**
    * Upload multiple files
    */
-  static async uploadFiles(files: File[], folderId: string | null, existingNames: string[]): Promise<DataRoomServiceResult<FileItem[]>> {
+  static async uploadFiles(
+    files: File[],
+    folderId: string | null,
+    existingNames: string[]
+  ): Promise<DataRoomServiceResult<FileItem[]>> {
     try {
       const uploadedFiles: FileItem[] = [];
       const currentNames = [...existingNames];
@@ -128,12 +146,13 @@ export class DataRoomService {
 
       return {
         success: true,
-        data: uploadedFiles
+        data: uploadedFiles,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to upload files'
+        error:
+          error instanceof Error ? error.message : "Failed to upload files",
       };
     }
   }
@@ -141,31 +160,37 @@ export class DataRoomService {
   /**
    * Rename a folder
    */
-  static async renameFolder(id: string, newName: string): Promise<DataRoomServiceResult<FolderItem>> {
+  static async renameFolder(
+    id: string,
+    newName: string
+  ): Promise<DataRoomServiceResult<FolderItem>> {
     try {
       if (!newName.trim()) {
         return {
           success: false,
-          error: 'Folder name cannot be empty'
+          error: "Folder name cannot be empty",
         };
       }
 
-      const updatedFolder = await storage.updateFolder(id, { name: newName.trim() });
+      const updatedFolder = await storage.updateFolder(id, {
+        name: newName.trim(),
+      });
       if (!updatedFolder) {
         return {
           success: false,
-          error: 'Folder not found'
+          error: "Folder not found",
         };
       }
 
       return {
         success: true,
-        data: updatedFolder
+        data: updatedFolder,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to rename folder'
+        error:
+          error instanceof Error ? error.message : "Failed to rename folder",
       };
     }
   }
@@ -173,31 +198,36 @@ export class DataRoomService {
   /**
    * Rename a file
    */
-  static async renameFile(id: string, newName: string): Promise<DataRoomServiceResult<FileItem>> {
+  static async renameFile(
+    id: string,
+    newName: string
+  ): Promise<DataRoomServiceResult<FileItem>> {
     try {
       if (!newName.trim()) {
         return {
           success: false,
-          error: 'File name cannot be empty'
+          error: "File name cannot be empty",
         };
       }
 
-      const updatedFile = await storage.updateFile(id, { name: newName.trim() });
+      const updatedFile = await storage.updateFile(id, {
+        name: newName.trim(),
+      });
       if (!updatedFile) {
         return {
           success: false,
-          error: 'File not found'
+          error: "File not found",
         };
       }
 
       return {
         success: true,
-        data: updatedFile
+        data: updatedFile,
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to rename file'
+        error: error instanceof Error ? error.message : "Failed to rename file",
       };
     }
   }
@@ -212,7 +242,8 @@ export class DataRoomService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to delete folder'
+        error:
+          error instanceof Error ? error.message : "Failed to delete folder",
       };
     }
   }
@@ -227,7 +258,7 @@ export class DataRoomService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to delete file'
+        error: error instanceof Error ? error.message : "Failed to delete file",
       };
     }
   }
@@ -235,7 +266,9 @@ export class DataRoomService {
   /**
    * Get breadcrumbs for a folder
    */
-  private static async getBreadcrumbs(folderId: string | null): Promise<BreadcrumbItem[]> {
+  private static async getBreadcrumbs(
+    folderId: string | null
+  ): Promise<BreadcrumbItem[]> {
     if (!folderId) {
       return [];
     }
@@ -245,10 +278,10 @@ export class DataRoomService {
       return folderPath.map((folder: FolderItem) => ({
         id: folder.id,
         name: folder.name,
-        path: `/${folder.name}`
+        path: `/${folder.name}`,
       }));
     } catch (error) {
-      console.error('Failed to get breadcrumbs:', error);
+      console.error("Failed to get breadcrumbs:", error);
       return [];
     }
   }
@@ -257,24 +290,24 @@ export class DataRoomService {
    * Get file type from filename
    */
   private static getFileType(filename: string): string {
-    const extension = filename.split('.').pop()?.toLowerCase();
-    
+    const extension = filename.split(".").pop()?.toLowerCase();
+
     switch (extension) {
-      case 'pdf':
-        return 'pdf';
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif':
-        return 'image';
-      case 'doc':
-      case 'docx':
-        return 'document';
-      case 'xls':
-      case 'xlsx':
-        return 'spreadsheet';
+      case "pdf":
+        return "pdf";
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "gif":
+        return "image";
+      case "doc":
+      case "docx":
+        return "document";
+      case "xls":
+      case "xlsx":
+        return "spreadsheet";
       default:
-        return 'file';
+        return "file";
     }
   }
 
@@ -282,6 +315,6 @@ export class DataRoomService {
    * Get existing names in a folder for validation
    */
   static getExistingNames(folders: FolderItem[], files: FileItem[]): string[] {
-    return [...folders.map(f => f.name), ...files.map(f => f.name)];
+    return [...folders.map((f) => f.name), ...files.map((f) => f.name)];
   }
 }

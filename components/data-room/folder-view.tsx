@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import { FolderItem, FileItem, ViewMode, ContextMenuPosition, ContextMenuItem } from '@/types';
 import { formatFileSize, formatDate } from '@/lib/utils-data-room';
-import { ContextMenu } from './ContextMenu';
+import { ContextMenu } from './context-menu';
+import { Button } from '@/components/ui/button';
 
 interface FolderViewProps {
   folders: FolderItem[];
@@ -129,15 +130,17 @@ export function FolderView({
               <span className="text-sm text-center text-gray-700 line-clamp-2 leading-tight" title={folder.name}>
                 {folder.name}
               </span>
-              <button
+              <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleContextMenu(e, folder, 'folder');
                 }}
-                className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 p-1 hover:bg-gray-200 rounded transition-all duration-150"
+                variant="ghost"
+                size="sm"
+                className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 h-6 w-6 p-0"
               >
                 <MoreVertical size={16} />
-              </button>
+              </Button>
             </div>
           ))}
 
@@ -156,15 +159,17 @@ export function FolderView({
               <span className="text-xs text-gray-500 mt-1">
                 {formatFileSize(file.size)}
               </span>
-              <button
+              <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleContextMenu(e, file, 'file');
                 }}
-                className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 p-1 hover:bg-gray-200 rounded transition-all duration-150"
+                variant="ghost"
+                size="sm"
+                className="opacity-0 group-hover:opacity-100 absolute top-2 right-2 h-6 w-6 p-0"
               >
                 <MoreVertical size={16} />
-              </button>
+              </Button>
             </div>
           ))}
         </div>
@@ -224,15 +229,17 @@ export function FolderView({
                   {formatDate(folder.updatedAt)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
+                  <Button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleContextMenu(e, folder, 'folder');
                     }}
-                    className="text-gray-400 hover:text-gray-600 transition-colors duration-150"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
                   >
                     <MoreVertical size={16} />
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
@@ -261,25 +268,29 @@ export function FolderView({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
-                    <button
+                    <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         onDownloadFile(file);
                       }}
-                      className="text-gray-400 hover:text-gray-600 transition-colors duration-150"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
                       title="Download"
                     >
                       <Download size={16} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleContextMenu(e, file, 'file');
                       }}
-                      className="text-gray-400 hover:text-gray-600 transition-colors duration-150"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
                     >
                       <MoreVertical size={16} />
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>

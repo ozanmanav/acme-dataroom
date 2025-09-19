@@ -1,17 +1,9 @@
-'use client';
+"use client";
 
-import { Grid, List, Plus, FolderPlus, Upload } from 'lucide-react';
-import { ViewMode } from '@/types';
-import { SearchBar } from './SearchBar';
-import { Button } from '@/components/ui/button';
-
-interface ToolbarProps {
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
-  onCreateFolder: () => void;
-  onUploadFiles: () => void;
-  onSearch: (query: string) => void;
-}
+import { Grid, List, FolderPlus, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SearchBar } from "@/components/forms/search-bar";
+import { ToolbarProps } from "@/types";
 
 export function Toolbar({
   viewMode,
@@ -19,44 +11,57 @@ export function Toolbar({
   onCreateFolder,
   onUploadFiles,
   onSearch,
+  disabled = false,
 }: ToolbarProps) {
   return (
-    <div className="flex items-center justify-between p-6 bg-white border-b border-gray-200">
-      <div className="flex items-center space-x-4">
-        <Button onClick={onCreateFolder} variant="outline" size="sm">
-          <FolderPlus size={16} className="mr-2" />
-          New Folder
-        </Button>
-        <Button onClick={onUploadFiles} variant="outline" size="sm">
-          <Upload size={16} className="mr-2" />
-          Upload Files
-        </Button>
+    <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+      {/* Left side - Search */}
+      <div className="flex-1 max-w-md">
+        <SearchBar onSearch={onSearch} disabled={disabled} />
       </div>
-      
-      <div className="flex items-center space-x-4">
-        <SearchBar onSearch={onSearch} />
-        
-        <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-          <button
-            onClick={() => onViewModeChange('grid')}
-            className={`p-2 transition-colors duration-150 ${
-              viewMode === 'grid'
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-500 hover:bg-gray-50'
-            }`}
+
+      {/* Right side - Actions and View Mode */}
+      <div className="flex items-center space-x-3">
+        {/* Action Buttons */}
+        <Button
+          onClick={onCreateFolder}
+          disabled={disabled}
+          variant="outline"
+          size="sm"
+          className="flex items-center space-x-2"
+        >
+          <FolderPlus size={16} />
+          <span>New Folder</span>
+        </Button>
+
+        <Button
+          onClick={onUploadFiles}
+          disabled={disabled}
+          size="sm"
+          className="flex items-center space-x-2"
+        >
+          <Upload size={16} />
+          <span>Upload</span>
+        </Button>
+
+        {/* View Mode Toggle */}
+        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
+          <Button
+            onClick={() => onViewModeChange("grid")}
+            variant={viewMode === "grid" ? "default" : "ghost"}
+            size="sm"
+            className="rounded-none border-0"
           >
             <Grid size={16} />
-          </button>
-          <button
-            onClick={() => onViewModeChange('list')}
-            className={`p-2 transition-colors duration-150 ${
-              viewMode === 'list'
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-gray-500 hover:bg-gray-50'
-            }`}
+          </Button>
+          <Button
+            onClick={() => onViewModeChange("list")}
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="sm"
+            className="rounded-none border-0"
           >
             <List size={16} />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

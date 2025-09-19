@@ -1,43 +1,70 @@
 "use client";
 
-import { useEffect } from "react";
-import { useDataRoomState } from "@/hooks/useDataRoomState";
+import { useDataRoom } from "@/hooks/data-room/use-data-room";
 import { downloadFile } from "@/lib/utils-data-room";
 
-// Components
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { LoadingSpinner, FullPageLoader } from "@/components/LoadingSpinner";
-import { ErrorAlert } from "@/components/ErrorAlert";
-import { NavigationBreadcrumb } from "@/components/data-room/NavigationBreadcrumb";
-import { Toolbar } from "@/components/data-room/Toolbar";
-import { FolderView } from "@/components/data-room/FolderView";
-import { FileUpload } from "@/components/data-room/FileUpload";
-import { CreateFolderModal } from "@/components/data-room/CreateFolderModal";
-import { RenameModal } from "@/components/data-room/RenameModal";
-import { DeleteConfirmModal } from "@/components/data-room/DeleteConfirmModal";
-import { FilePreview } from "@/components/data-room/FilePreview";
+// Component imports
+import { ErrorBoundary } from "@/components/common/error-boundary";
+import {
+  LoadingSpinner,
+  FullPageLoader,
+} from "@/components/common/loading-spinner";
+import { ErrorAlert } from "@/components/common/error-alert";
+import { NavigationBreadcrumb } from "@/components/data-room/navigation-breadcrumb";
+import { FolderView } from "@/components/data-room/folder-view";
+import { FileUpload } from "@/components/forms/file-upload";
+import { CreateFolderModal } from "@/components/modals/create-folder-modal";
+import { RenameModal } from "@/components/modals/rename-modal";
+import { DeleteConfirmModal } from "@/components/modals/delete-confirm-modal";
+import { FilePreview } from "@/components/data-room/file-preview";
+import { Toolbar } from "@/components/data-room/toolbar";
 
 export default function DataRoomPage() {
   const {
-    state,
-    displayData,
-    existingNames,
-    updateState,
+    // Data
+    displayFolders,
+    displayFiles,
+    breadcrumbs,
+    currentFolderId,
+
+    // Loading states
+    isLoading,
+    error,
+
+    // UI State
+    viewMode,
+    showFileUpload,
+    showCreateFolder,
+    renameItem,
+    deleteItem,
+    previewFile,
+
+    // Actions
+    setViewMode,
+    setShowFileUpload,
+    setShowCreateFolder,
+    setRenameItem,
+    setDeleteItem,
+    setPreviewFile,
+    setIsDeleting,
     clearError,
+
+    // Data Actions
     loadFolderContents,
+    updateBreadcrumbs,
     searchItems,
     clearSearch,
     createFolder,
     uploadFiles,
-    renameItem,
-    deleteItem,
-    navigateToFolder,
-  } = useDataRoomState();
+    updateFolder,
+    updateFile,
+    deleteFolder,
+    deleteFile,
+    setCurrentFolderId,
 
-  // Initialize on mount
-  useEffect(() => {
-    loadFolderContents(null);
-  }, []);
+    // Utilities
+    getExistingNames,
+  } = useDataRoom();
 
   // Event handlers
   const handleSearch = async (query: string) => {
@@ -49,7 +76,9 @@ export default function DataRoomPage() {
   };
 
   const handleNavigate = async (folderId: string | null) => {
-    await navigateToFolder(folderId);
+    setCurrentFolderId(folderId);
+    await loadFolderContents(folderId);
+    await updateBreadcrumbs(folderId);
   };
 
   const handleFileUpload = async (files: File[]) => {
@@ -57,15 +86,34 @@ export default function DataRoomPage() {
   };
 
   const handleCreateFolder = async (name: string) => {
-    await createFolder(name);
+    await createFolder(name, currentFolderId);
   };
 
   const handleRename = async (newName: string) => {
-    await renameItem(newName);
+    if (!renameItem) return;
+
+    if (renameItem.type === "folder") {
+      await updateFolder(renameItem.item.id, { name: newName });
+    } else {
+      await updateFile(renameItem.item.id, { name: newName });
+    }
+    setRenameItem(null);
   };
 
   const handleDelete = async () => {
-    await deleteItem();
+    if (!deleteItem) return;
+
+    setIsDeleting(true);
+    try {
+      if (deleteItem.type === "folder") {
+        await deleteFolder(deleteItem.item.id);
+      } else {
+        await deleteFile(deleteItem.item.id);
+      }
+      setDeleteItem(null);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleDownloadFile = (file: any) => {
@@ -73,11 +121,7 @@ export default function DataRoomPage() {
   };
 
   // Show full page loader on initial load
-  if (
-    state.isLoading &&
-    state.folders.length === 0 &&
-    state.files.length === 0
-  ) {
+  if (isLoading && displayFolders.length === 0 && displayFiles.length === 0) {
     return <FullPageLoader text="Data Room yükleniyor..." />;
   }
 
@@ -86,52 +130,52 @@ export default function DataRoomPage() {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-full mx-auto bg-white shadow-xs">
           {/* Error Alert */}
-          {state.error && (
+          {error && (
             <div className="p-4">
-              <ErrorAlert error={state.error} onClose={clearError} />
+              <ErrorAlert error={error} onClose={clearError} />
             </div>
           )}
 
           {/* Navigation */}
           <NavigationBreadcrumb
-            path={state.breadcrumbs}
+            path={breadcrumbs}
             onNavigate={handleNavigate}
           />
 
           {/* Toolbar */}
           <Toolbar
-            viewMode={state.viewMode}
-            onViewModeChange={(mode) => updateState({ viewMode: mode })}
-            onCreateFolder={() => updateState({ showCreateFolder: true })}
-            onUploadFiles={() => updateState({ showFileUpload: true })}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onCreateFolder={() => setShowCreateFolder(true)}
+            onUploadFiles={() => setShowFileUpload(true)}
             onSearch={handleSearch}
           />
 
           {/* Main Content */}
           <div className="min-h-[calc(100vh-200px)] relative">
-            {state.isLoading && (
+            {isLoading && (
               <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
                 <LoadingSpinner size="lg" text="Yükleniyor..." />
               </div>
             )}
 
             <FolderView
-              folders={displayData.folders}
-              files={displayData.files}
-              viewMode={state.viewMode}
+              folders={displayFolders}
+              files={displayFiles}
+              viewMode={viewMode}
               onFolderClick={handleNavigate}
-              onFileClick={(file) => updateState({ previewFile: file })}
+              onFileClick={setPreviewFile}
               onRenameFolder={(folder) =>
-                updateState({ renameItem: { item: folder, type: "folder" } })
+                setRenameItem({ item: folder, type: "folder" })
               }
               onDeleteFolder={(folder) =>
-                updateState({ deleteItem: { item: folder, type: "folder" } })
+                setDeleteItem({ item: folder, type: "folder" })
               }
               onRenameFile={(file) =>
-                updateState({ renameItem: { item: file, type: "file" } })
+                setRenameItem({ item: file, type: "file" })
               }
               onDeleteFile={(file) =>
-                updateState({ deleteItem: { item: file, type: "file" } })
+                setDeleteItem({ item: file, type: "file" })
               }
               onDownloadFile={handleDownloadFile}
             />
@@ -139,44 +183,44 @@ export default function DataRoomPage() {
         </div>
 
         {/* Modals */}
-        {state.showFileUpload && (
+        {showFileUpload && (
           <FileUpload
             onUpload={handleFileUpload}
-            onClose={() => updateState({ showFileUpload: false })}
+            onClose={() => setShowFileUpload(false)}
           />
         )}
 
-        {state.showCreateFolder && (
+        {showCreateFolder && (
           <CreateFolderModal
             onCreateFolder={handleCreateFolder}
-            onClose={() => updateState({ showCreateFolder: false })}
-            existingNames={existingNames}
+            onClose={() => setShowCreateFolder(false)}
+            existingNames={getExistingNames()}
           />
         )}
 
-        {state.renameItem && (
+        {renameItem && (
           <RenameModal
-            currentName={state.renameItem.item.name}
-            itemType={state.renameItem.type}
+            currentName={renameItem.item.name}
+            itemType={renameItem.type}
             onRename={handleRename}
-            onClose={() => updateState({ renameItem: null })}
-            existingNames={existingNames}
+            onClose={() => setRenameItem(null)}
+            existingNames={getExistingNames()}
           />
         )}
 
-        {state.deleteItem && (
+        {deleteItem && (
           <DeleteConfirmModal
-            itemName={state.deleteItem.item.name}
-            itemType={state.deleteItem.type}
+            itemName={deleteItem.item.name}
+            itemType={deleteItem.type}
             onConfirm={handleDelete}
-            onClose={() => updateState({ deleteItem: null })}
+            onClose={() => setDeleteItem(null)}
           />
         )}
 
-        {state.previewFile && (
+        {previewFile && (
           <FilePreview
-            file={state.previewFile}
-            onClose={() => updateState({ previewFile: null })}
+            file={previewFile}
+            onClose={() => setPreviewFile(null)}
           />
         )}
       </div>

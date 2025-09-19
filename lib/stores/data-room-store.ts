@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { FileItem, FolderItem, BreadcrumbItem } from '@/types';
 import { storage } from '@/lib/storage';
+import { generateUniqueFileName, readFileAsBase64 } from '@/lib/utils-data-room';
 
 interface DataRoomState {
   // Data
@@ -10,12 +11,22 @@ interface DataRoomState {
   currentFolderId: string | null;
   searchResults: { folders: FolderItem[]; files: FileItem[] } | null;
   
+  // Loading states
+  isLoading: boolean;
+  isSearching: boolean;
+  isUploading: boolean;
+  
+  // Error state
+  error: string | null;
+  
   // Actions
   setFolders: (folders: FolderItem[]) => void;
   setFiles: (files: FileItem[]) => void;
   setBreadcrumbs: (breadcrumbs: BreadcrumbItem[]) => void;
   setCurrentFolderId: (id: string | null) => void;
   setSearchResults: (results: { folders: FolderItem[]; files: FileItem[] } | null) => void;
+  setError: (error: string | null) => void;
+  clearError: () => void;
   
   // Data operations
   loadFolderContents: (folderId?: string | null) => Promise<void>;
@@ -30,6 +41,11 @@ interface DataRoomState {
   createFile: (file: Omit<FileItem, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateFile: (id: string, updates: Partial<FileItem>) => Promise<void>;
   deleteFile: (id: string) => Promise<void>;
+  uploadFiles: (files: File[]) => Promise<void>;
+  
+  // Computed values
+  getDisplayData: () => { folders: FolderItem[]; files: FileItem[] };
+  getExistingNames: () => string[];
 }
 
 export const useDataRoomStore = create<DataRoomState>((set, get) => ({
@@ -39,6 +55,10 @@ export const useDataRoomStore = create<DataRoomState>((set, get) => ({
   breadcrumbs: [],
   currentFolderId: null,
   searchResults: null,
+  isLoading: false,
+  isSearching: false,
+  isUploading: false,
+  error: null,
   
   // Basic setters
   setFolders: (folders) => set({ folders }),
@@ -46,6 +66,8 @@ export const useDataRoomStore = create<DataRoomState>((set, get) => ({
   setBreadcrumbs: (breadcrumbs) => set({ breadcrumbs }),
   setCurrentFolderId: (currentFolderId) => set({ currentFolderId }),
   setSearchResults: (searchResults) => set({ searchResults }),
+  setError: (error) => set({ error }),
+  clearError: () => set({ error: null }),
   
   // Load folder contents
   loadFolderContents: async (folderId) => {
@@ -139,5 +161,46 @@ export const useDataRoomStore = create<DataRoomState>((set, get) => ({
     const { loadFolderContents } = get();
     await storage.deleteFile(id);
     await loadFolderContents();
+  },
+
+  // File upload functionality
+  uploadFiles: async (files) => {
+    const { currentFolderId, loadFolderContents, getExistingNames } = get();
+    set({ isUploading: true, error: null });
+
+    try {
+      const existingNames = getExistingNames();
+      
+      for (const file of files) {
+        const content = await readFileAsBase64(file);
+        const uniqueName = generateUniqueFileName(file.name, existingNames);
+        
+        await storage.createFile(
+          uniqueName,
+          content,
+          file.size,
+          currentFolderId
+        );
+        
+        existingNames.push(uniqueName);
+      }
+      
+      await loadFolderContents();
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : 'Upload failed' });
+    } finally {
+      set({ isUploading: false });
+    }
+  },
+
+  // Computed values
+  getDisplayData: () => {
+    const { folders, files, searchResults } = get();
+    return searchResults || { folders, files };
+  },
+
+  getExistingNames: () => {
+    const { folders, files } = get();
+    return [...folders.map(f => f.name), ...files.map(f => f.name)];
   }
 }));

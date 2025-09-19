@@ -9,7 +9,10 @@ export const useDataRoom = () => {
     files,
     breadcrumbs,
     currentFolderId,
-    searchResults: dataSearchResults,
+    isLoading,
+    isSearching,
+    isUploading,
+    error,
     loadFolderContents,
     updateBreadcrumbs,
     createFile,
@@ -21,6 +24,10 @@ export const useDataRoom = () => {
     searchItems,
     clearSearch,
     setCurrentFolderId,
+    uploadFiles,
+    getDisplayData,
+    getExistingNames,
+    clearError,
   } = useDataRoomStore();
 
   // UI store
@@ -50,16 +57,8 @@ export const useDataRoom = () => {
     initializeApp();
   }, [loadFolderContents, updateBreadcrumbs]);
 
-  // Display data - use search results if searching, otherwise use current folder data
-  const displayFolders = dataSearchResults
-    ? dataSearchResults.folders
-    : folders;
-  const displayFiles = dataSearchResults ? dataSearchResults.files : files;
-
-  // Get existing names for validation
-  const getExistingNames = () => {
-    return [...folders.map((f) => f.name), ...files.map((f) => f.name)];
-  };
+  // Get display data using the store's computed method
+  const { folders: displayFolders, files: displayFiles } = getDisplayData();
 
   return {
     // Data
@@ -69,6 +68,12 @@ export const useDataRoom = () => {
     currentFolderId,
     displayFolders,
     displayFiles,
+
+    // Loading states
+    isLoading,
+    isSearching,
+    isUploading,
+    error,
 
     // UI State
     viewMode,
@@ -87,6 +92,7 @@ export const useDataRoom = () => {
     setDeleteItem,
     setPreviewFile,
     setIsDeleting,
+    clearError,
 
     // Data Actions
     loadFolderContents,
@@ -100,6 +106,7 @@ export const useDataRoom = () => {
     searchItems,
     clearSearch,
     setCurrentFolderId,
+    uploadFiles,
 
     // Utilities
     getExistingNames,
