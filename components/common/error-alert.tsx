@@ -1,5 +1,6 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ErrorAlertProps {
   error: string;
@@ -18,14 +19,16 @@ export const ErrorAlert = ({
       <AlertDescription className="flex items-center justify-between">
         <span>{error}</span>
         {onClose && (
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="ml-auto pl-3 inline-flex bg-transparent rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-red-50 focus:ring-red-600"
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-6 w-6 p-0 text-red-500 hover:bg-red-100 hover:text-red-600"
           >
             <span className="sr-only">Kapat</span>
             <X className="h-3 w-3" />
-          </button>
+          </Button>
         )}
       </AlertDescription>
     </Alert>

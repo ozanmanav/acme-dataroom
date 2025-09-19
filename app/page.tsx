@@ -8,7 +8,7 @@ import { ErrorBoundary } from "@/components/common/error-boundary";
 import {
   LoadingSpinner,
   FullPageLoader,
-} from "@/components/common/loading-spinner";
+} from "@/components/ui/loading-spinner";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { NavigationBreadcrumb } from "@/components/data-room/navigation-breadcrumb";
 import { FolderView } from "@/components/data-room/folder-view";
