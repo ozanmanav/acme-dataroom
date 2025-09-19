@@ -1,7 +1,7 @@
 export interface FileItem {
   id: string;
   name: string;
-  type: 'pdf';
+  type: "pdf";
   size: number;
   content: string; // base64 encoded content
   folderId: string | null;
@@ -23,7 +23,7 @@ export interface BreadcrumbItem {
   path: string;
 }
 
-export type ViewMode = 'grid' | 'list';
+export type ViewMode = "grid" | "list";
 
 export interface ContextMenuPosition {
   x: number;
@@ -31,11 +31,12 @@ export interface ContextMenuPosition {
 }
 
 export interface ContextMenuItem {
-  id: string;
+  id?: string;
   label: string;
-  icon: string;
-  action: () => void;
+  icon?: React.ReactNode;
+  onClick: () => void;
   disabled?: boolean;
+  variant?: "default" | "destructive";
 }
 
 // UI State types
@@ -93,7 +94,10 @@ export interface DataRoomServiceInterface {
   }>;
   createFolder(name: string, parentId: string | null): Promise<FolderItem>;
   uploadFiles(files: File[], folderId: string | null): Promise<FileItem[]>;
-  renameFolder(folderId: string, newName: string): Promise<FolderItem | undefined>;
+  renameFolder(
+    folderId: string,
+    newName: string
+  ): Promise<FolderItem | undefined>;
   renameFile(fileId: string, newName: string): Promise<FileItem | undefined>;
   deleteFolder(folderId: string): Promise<void>;
   deleteFile(fileId: string): Promise<void>;
