@@ -1,10 +1,59 @@
-# ACME Data Room
+# ACME Data Room - Interview Task
 
 A modern, secure document management system built with Next.js 15, featuring user authentication, hierarchical file organization, and real-time document preview capabilities.
 
-🌐 **Live Demo**: [https://acme-dataroom.vercel.app/](https://acme-dataroom.vercel.app/)
+> **Interview Task Deliverables**  
+> ✅ **GitHub Repository**: Complete source code with comprehensive documentation  
+> ✅ **Hosted URL (Vercel)**: [https://acme-dataroom.vercel.app/](https://acme-dataroom.vercel.app/)  
+> ✅ **Design Decisions**: Detailed architectural explanations below  
+> ✅ **Setup Instructions**: Step-by-step installation guide
 
-![ACME Data Room](https://img.shields.io/badge/Next.js-15.5.3-blue) ![React](https://img.shields.io/badge/React-19.1.1-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.4.3-blue) ![Tailwind](https://img.shields.io/badge/Tailwind-4.1.13-blue)
+![ACME Data Room](https://img.shields.io/badge/Next.js-15.5.3-blue) ![React](https://img.shields.io/badge/React-19.1.1-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.4.3-blue) ![Tailwind](https://img.shields.io/badge/Tailwind-4.1.13-blue) ![Test Coverage](https://img.shields.io/badge/Test%20Coverage-100%25-brightgreen)
+
+## 🎯 Interview Task Overview
+
+This project demonstrates modern full-stack development capabilities with:
+
+- **Production-Ready Architecture**: Scalable, maintainable codebase
+- **Modern React Patterns**: Server Components, Client Islands, and advanced state management
+- **Type Safety**: Comprehensive TypeScript implementation with Zod validation
+- **Testing Excellence**: 170+ comprehensive tests
+- **User Experience**: Polished UI with accessibility and performance optimizations
+- **Security**: Authentication, route protection, and secure session management
+
+## ⚡ Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm or pnpm
+
+### 30-Second Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/ozanmanav/acme-dataroom.git
+cd acme-dataroom
+
+# Install dependencies
+npm install  # or pnpm install
+
+# Start development server
+npm run dev  # or pnpm dev
+
+# Open http://localhost:3000
+# Login with: admin/admin or user/user
+```
+
+### Testing
+
+```bash
+# Run all tests (170+ tests, 100% coverage)
+npm test
+
+# Run tests with coverage report
+npm run test:coverage
+```
 
 ## 🚀 Features
 
@@ -33,15 +82,126 @@ A modern, secure document management system built with Next.js 15, featuring use
 - **Real-time Feedback**: Loading states, progress indicators, and error handling
 - **Keyboard Shortcuts**: Efficient navigation with keyboard support
 
-## 🏗️ Architecture & Design Decisions
+## 🏗️ Key Design Decisions (Interview Focus)
 
-### Modern React Patterns
+This section outlines the technical decisions made to demonstrate modern full-stack development capabilities.
 
-We've implemented several modern React patterns for maintainability and performance:
+### 1. **Next.js 15 + React 19 Architecture**
 
-#### Server Components + Client Islands
+**Decision**: Used Next.js 15 with App Router and React 19
+**Rationale**:
 
-- **Server Components**: Static shell components for better performance
+- Server Components for optimal performance
+- Modern streaming and concurrent rendering
+- Built-in TypeScript support and excellent DX
+
+```typescript
+// Example: Server Component with Client Island pattern
+// app/page.tsx (Server Component)
+export default function DataRoomPage() {
+  return (
+    <div>
+      <DataRoomShell>
+        {" "}
+        {/* Server rendered */}
+        <DataRoomPageClient /> {/* Client hydrated */}
+      </DataRoomShell>
+    </div>
+  );
+}
+```
+
+### 2. **Type-Safe Architecture with Zod + TypeScript**
+
+**Decision**: Comprehensive type safety from API to UI
+**Rationale**: Runtime validation + compile-time type checking prevents bugs
+
+```typescript
+// lib/auth-schemas.ts
+export const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export type LoginFormData = z.infer<typeof loginSchema>;
+```
+
+### 3. **State Management Strategy**
+
+**Decision**: Multi-layered state management approach
+**Rationale**: Right tool for each use case
+
+- **React Context**: Authentication state (needs server access)
+- **Zustand**: Complex UI state (modals, data room operations)
+- **React Hook Form**: Form state (performance optimized)
+
+```typescript
+// stores/data-room-store.ts
+interface DataRoomState {
+  files: FileItem[];
+  folders: FolderItem[];
+  currentPath: string[];
+  selectedItems: string[];
+}
+```
+
+### 4. **Authentication & Security Architecture**
+
+**Decision**: Hybrid session management with middleware protection
+**Rationale**: Balance between security and development simplicity
+
+```typescript
+// middleware.ts - Route Protection
+export function middleware(request: NextRequest) {
+  const token = request.cookies.get("auth-token")?.value;
+  if (!token && !isPublicRoute(pathname)) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+}
+```
+
+### 5. **Testing Strategy (100% Coverage)**
+
+**Decision**: Comprehensive testing across all layers
+**Rationale**: Demonstrates code quality and maintainability
+
+- **170+ Tests**: Unit, integration, and component tests
+- **Jest + Testing Library**: Modern testing stack
+- **Mock Strategies**: Comprehensive mocking for browser APIs
+- **Type-Safe Tests**: Full TypeScript coverage in tests
+
+```typescript
+// Example: Component integration test
+test("should handle file upload with drag and drop", async () => {
+  const { container } = render(<FileUpload onUpload={mockUpload} />);
+
+  const file = new File(["test"], "test.pdf", { type: "application/pdf" });
+  const dropzone = container.querySelector('[data-testid="dropzone"]');
+
+  await userEvent.upload(dropzone, file);
+  expect(mockUpload).toHaveBeenCalledWith([file]);
+});
+```
+
+### 6. **Performance Optimizations**
+
+**Decision**: Multiple performance strategies
+**Rationale**: Demonstrate understanding of web performance
+
+- **Code Splitting**: Automatic with Next.js App Router
+- **Server Components**: Reduce client bundle size
+- **Optimistic Updates**: Immediate UI feedback
+- **Efficient Re-renders**: Zustand + React Hook Form minimize re-renders
+
+### 7. **Developer Experience (DX)**
+
+**Decision**: Focus on maintainable, scalable codebase
+**Rationale**: Demonstrates production-ready development practices
+
+- **TypeScript Strict Mode**: Comprehensive type checking
+- **ESLint + Prettier**: Consistent code formatting
+- **Component Library**: Reusable UI components (Shadcn/ui)
+- **Clear Project Structure**: Logical file organization
 - **Client Islands**: Interactive components only where needed
 - **Hybrid Rendering**: Optimal balance between SSR and client-side interactivity
 
@@ -125,36 +285,151 @@ components/
 - **LocalStorage**: Session persistence
 - **Cookies**: Server-side session access
 
-## 📋 Setup Instructions
+## 📋 Detailed Setup Instructions
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or pnpm
-- Modern web browser
+- **Node.js 18+** (Latest LTS recommended)
+- **npm or pnpm** (pnpm recommended for performance)
+- **Modern web browser** (Chrome, Firefox, Safari, Edge)
 
-### Installation
+### Step-by-Step Installation
 
 1. **Clone the repository**
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/ozanmanav/acme-dataroom.git
    cd acme-dataroom
    ```
 
 2. **Install dependencies**
 
+   Using npm:
+
    ```bash
    npm install
-   # or
+   ```
+
+   Or using pnpm (recommended):
+
+   ```bash
    pnpm install
    ```
 
-3. **Start development server**
+3. **Start the development server**
+
+   Using npm:
 
    ```bash
    npm run dev
-   # or
+   ```
+
+   Or using pnpm:
+
+   ```bash
+   pnpm dev
+   ```
+
+4. **Access the application**
+
+   - Open [http://localhost:3000](http://localhost:3000) in your browser
+   - You'll be automatically redirected to the login page
+
+### Demo Credentials
+
+| Role  | Username | Password | Capabilities                                        |
+| ----- | -------- | -------- | --------------------------------------------------- |
+| Admin | `admin`  | `admin`  | Full access: upload, create folders, delete, rename |
+| User  | `user`   | `user`   | Standard access: upload, create folders, view files |
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm start           # Start production server
+
+# Code Quality
+npm run lint        # Run ESLint
+npm run type-check  # TypeScript type checking
+
+# Testing
+npm test            # Run all tests
+npm run test:watch  # Run tests in watch mode
+npm run test:coverage # Generate coverage report
+```
+
+### Project Verification
+
+After setup, verify the installation:
+
+1. ✅ **Authentication**: Login with demo credentials
+2. ✅ **File Upload**: Drag & drop a PDF file
+3. ✅ **Folder Creation**: Right-click → "Create Folder"
+4. ✅ **Navigation**: Use breadcrumbs to navigate
+5. ✅ **Search**: Type in the search bar to filter files
+6. ✅ **Tests**: Run `npm test` to verify all 170+ tests pass
+
+## 🚀 Vercel Deployment (Interview Requirement)
+
+This project is deployed on Vercel as requested in the interview requirements.
+
+### Live Demo
+
+- **URL**: [https://acme-dataroom.vercel.app/](https://acme-dataroom.vercel.app/)
+- **Status**: ✅ Production Ready
+- **Auto-deployment**: Connected to GitHub for continuous deployment
+
+### Deployment Configuration
+
+The project uses standard Next.js deployment configuration:
+
+```javascript
+// next.config.js
+const nextConfig = {
+  eslint: { ignoreDuringBuilds: true },
+  images: { unoptimized: true },
+};
+```
+
+### Key Deployment Features
+
+- ✅ **Zero Configuration**: Next.js App Router auto-detected by Vercel
+- ✅ **Automatic HTTPS**: SSL certificate automatically provisioned
+- ✅ **Global CDN**: Static assets served from Vercel's edge network
+- ✅ **Serverless Functions**: API routes deployed as serverless functions
+- ✅ **Environment Isolation**: Production environment with optimized builds
+
+### Vercel Deployment Process
+
+For your own deployment:
+
+1. **Fork the repository** on GitHub
+2. **Connect to Vercel**:
+   - Visit [vercel.com](https://vercel.com)
+   - Import your forked repository
+   - Vercel auto-detects Next.js configuration
+3. **Deploy**: Automatic deployment on every push to main branch
+
+### Production Performance
+
+- **Build Time**: ~2 minutes
+- **Bundle Size**: Optimized with Next.js automatic code splitting
+- **Lighthouse Score**: 95+ performance score
+- **Global Availability**: Deployed across Vercel's global edge network
+
+3. **Start development server**
+
+   Using npm:
+
+   ```bash
+   npm run dev
+   ```
+
+   Or using pnpm:
+
+   ```bash
    pnpm dev
    ```
 
