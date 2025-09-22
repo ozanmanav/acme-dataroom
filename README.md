@@ -2,6 +2,8 @@
 
 A modern, secure document management system built with Next.js 15, featuring user authentication, hierarchical file organization, and real-time document preview capabilities.
 
+🌐 **Live Demo**: [https://acme-dataroom.vercel.app/](https://acme-dataroom.vercel.app/)
+
 ![ACME Data Room](https://img.shields.io/badge/Next.js-15.5.3-blue) ![React](https://img.shields.io/badge/React-19.1.1-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5.4.3-blue) ![Tailwind](https://img.shields.io/badge/Tailwind-4.1.13-blue)
 
 ## 🚀 Features
