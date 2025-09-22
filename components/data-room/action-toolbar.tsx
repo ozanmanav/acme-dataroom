@@ -6,7 +6,7 @@ import { SearchBar } from "@/components/forms/search-bar";
 import { useDataRoomStore } from "@/lib/stores/data-room-store";
 import { useModalActions } from "@/hooks/use-modal-router";
 
-export function Toolbar() {
+export function ActionToolbar() {
   const { searchItems, clearSearch } = useDataRoomStore();
   const { openFileUpload, openCreateFolder } = useModalActions();
 

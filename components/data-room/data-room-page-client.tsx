@@ -9,7 +9,7 @@ import { FullPageLoader } from "@/components/ui/loading-spinner";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { NavigationBreadcrumb } from "@/components/data-room/navigation-breadcrumb";
 import { FolderView } from "@/components/data-room/folder-view";
-import { Toolbar } from "@/components/data-room/toolbar";
+import { ActionToolbar } from "@/components/data-room/action-toolbar";
 import { DataRoomModals } from "@/components/data-room/data-room-modals";
 
 export function DataRoomPageClient() {
@@ -41,7 +41,7 @@ export function DataRoomPageClient() {
       <NavigationBreadcrumb />
 
       {/* Toolbar */}
-      <Toolbar />
+      <ActionToolbar />
 
       {/* Main Content */}
       <FolderView />
