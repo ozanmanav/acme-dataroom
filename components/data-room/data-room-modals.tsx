@@ -1,7 +1,7 @@
 "use client";
 
 import { useDataRoomStore } from "@/lib/stores/data-room-store";
-import { useUIStore } from "@/lib/stores/ui-store";
+import { useModalRouter } from "@/hooks/use-modal-router";
 import { FileUpload } from "@/components/forms/file-upload";
 import { CreateFolderModal } from "@/components/modals/create-folder-modal";
 import { RenameModal } from "@/components/modals/rename-modal";
@@ -20,94 +20,81 @@ export function DataRoomModals() {
     getExistingNames,
   } = useDataRoomStore();
 
-  const {
-    showFileUpload,
-    showCreateFolder,
-    renameItem,
-    deleteItem,
-    previewFile,
-    setShowFileUpload,
-    setShowCreateFolder,
-    setRenameItem,
-    setDeleteItem,
-    setPreviewFile,
-    setIsDeleting,
-  } = useUIStore();
+  const { modal, closeModal } = useModalRouter();
 
+  // Handler functions
   const handleFileUpload = async (files: File[]) => {
     await uploadFiles(files);
+    closeModal();
   };
 
   const handleCreateFolder = async (name: string) => {
     await createFolder(name, currentFolderId);
+    closeModal();
   };
 
   const handleRename = async (newName: string) => {
-    if (!renameItem) return;
+    const { item, type } = modal.props || {};
+    if (!item || !type) return;
 
-    if (renameItem.type === "folder") {
-      await updateFolder(renameItem.item.id, { name: newName });
+    if (type === "folder") {
+      await updateFolder(item.id, { name: newName });
     } else {
-      await updateFile(renameItem.item.id, { name: newName });
+      await updateFile(item.id, { name: newName });
     }
-    setRenameItem(null);
+    closeModal();
   };
 
   const handleDelete = async () => {
-    if (!deleteItem) return;
+    const { item, type } = modal.props || {};
+    if (!item || !type) return;
 
-    setIsDeleting(true);
     try {
-      if (deleteItem.type === "folder") {
-        await deleteFolder(deleteItem.item.id);
+      if (type === "folder") {
+        await deleteFolder(item.id);
       } else {
-        await deleteFile(deleteItem.item.id);
+        await deleteFile(item.id);
       }
-      setDeleteItem(null);
-    } finally {
-      setIsDeleting(false);
+      closeModal();
+    } catch (error) {
+      // Error handling can be done here if needed
+      console.error("Delete failed:", error);
     }
   };
 
-  return (
-    <>
-      {showFileUpload && (
-        <FileUpload
-          onUpload={handleFileUpload}
-          onClose={() => setShowFileUpload(false)}
-        />
-      )}
+  // Modal renderer
+  if (!modal.type) return null;
 
-      {showCreateFolder && (
-        <CreateFolderModal
-          onCreateFolder={handleCreateFolder}
-          onClose={() => setShowCreateFolder(false)}
-          existingNames={getExistingNames()}
-        />
-      )}
+  const modalComponents = {
+    "file-upload": (
+      <FileUpload onUpload={handleFileUpload} onClose={closeModal} />
+    ),
+    "create-folder": (
+      <CreateFolderModal
+        onCreateFolder={handleCreateFolder}
+        onClose={closeModal}
+        existingNames={getExistingNames()}
+      />
+    ),
+    rename: (
+      <RenameModal
+        currentName={modal.props?.item?.name || ""}
+        itemType={modal.props?.type || "file"}
+        onRename={handleRename}
+        onClose={closeModal}
+        existingNames={getExistingNames()}
+      />
+    ),
+    delete: (
+      <DeleteConfirmModal
+        itemName={modal.props?.item?.name || ""}
+        itemType={modal.props?.type || "file"}
+        onConfirm={handleDelete}
+        onClose={closeModal}
+      />
+    ),
+    preview: <FilePreview file={modal.props?.file} onClose={closeModal} />,
+  };
 
-      {renameItem && (
-        <RenameModal
-          currentName={renameItem.item.name}
-          itemType={renameItem.type}
-          onRename={handleRename}
-          onClose={() => setRenameItem(null)}
-          existingNames={getExistingNames()}
-        />
-      )}
-
-      {deleteItem && (
-        <DeleteConfirmModal
-          itemName={deleteItem.item.name}
-          itemType={deleteItem.type}
-          onConfirm={handleDelete}
-          onClose={() => setDeleteItem(null)}
-        />
-      )}
-
-      {previewFile && (
-        <FilePreview file={previewFile} onClose={() => setPreviewFile(null)} />
-      )}
-    </>
-  );
+  return modalComponents[modal.type] || null;
 }

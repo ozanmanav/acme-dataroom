@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useDataRoomStore } from "@/lib/stores/data-room-store";
-import { useUIStore } from "@/lib/stores/ui-store";
 
 export const useDataRoom = () => {
   // Data store
@@ -30,24 +29,6 @@ export const useDataRoom = () => {
     clearError,
   } = useDataRoomStore();
 
-  // UI store
-  const {
-    viewMode,
-    showFileUpload,
-    showCreateFolder,
-    renameItem,
-    deleteItem,
-    previewFile,
-    isDeleting,
-    setViewMode,
-    setShowFileUpload,
-    setShowCreateFolder,
-    setRenameItem,
-    setDeleteItem,
-    setPreviewFile,
-    setIsDeleting,
-  } = useUIStore();
-
   // Initialize on mount
   useEffect(() => {
     const initializeApp = async () => {
@@ -75,23 +56,7 @@ export const useDataRoom = () => {
     isUploading,
     error,
 
-    // UI State
-    viewMode,
-    showFileUpload,
-    showCreateFolder,
-    renameItem,
-    deleteItem,
-    previewFile,
-    isDeleting,
-
     // Actions
-    setViewMode,
-    setShowFileUpload,
-    setShowCreateFolder,
-    setRenameItem,
-    setDeleteItem,
-    setPreviewFile,
-    setIsDeleting,
     clearError,
 
     // Data Actions

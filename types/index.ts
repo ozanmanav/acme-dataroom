@@ -23,8 +23,6 @@ export interface BreadcrumbItem {
   path: string;
 }
 
-export type ViewMode = "grid" | "list";
-
 export interface ContextMenuPosition {
   x: number;
   y: number;
@@ -37,27 +35,6 @@ export interface ContextMenuItem {
   onClick: () => void;
   disabled?: boolean;
   variant?: "default" | "destructive";
-}
-
-// UI State types
-export interface RenameItemState {
-  item: FolderItem | FileItem;
-  type: "folder" | "file";
-}
-
-export interface DeleteItemState {
-  item: FolderItem | FileItem;
-  type: "folder" | "file";
-}
-
-// Component Props types
-export interface ToolbarProps {
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
-  onCreateFolder: () => void;
-  onUploadFiles: () => void;
-  onSearch: (query: string) => void | Promise<void>;
-  disabled?: boolean;
 }
 
 export interface FileUploadProps {
@@ -108,4 +85,33 @@ export interface DataRoomError {
   message: string;
   code?: string;
   details?: any;
+}
+
+// Authentication types
+export interface User {
+  id: string;
+  username: string;
+  email?: string;
+  name?: string;
+  role: "admin" | "user";
+  createdAt: Date;
+  lastLoginAt?: Date;
+}
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface AuthSession {
+  user: User;
+  token: string;
+  expiresAt: Date;
+}
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  isLoading: boolean;
+  error: string | null;
 }

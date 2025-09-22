@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Upload, FileText, AlertCircle, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { formatFileSize } from "@/lib/utils-data-room";
 import { BaseModal } from "../modals/base-modal";
+import { toast } from "sonner";
 
 interface FileUploadProps {
   onUpload: (files: File[]) => Promise<void>;
@@ -18,36 +22,90 @@ interface FileWithProgress {
   error?: string | null;
 }
 
+// Zod schema for file validation
+const fileSchema = z.object({
+  files: z
+    .array(
+      z
+        .instanceof(File)
+        .refine((file) => file.type === "application/pdf", {
+          message: "Only PDF files are supported",
+        })
+        .refine((file) => file.size <= 50 * 1024 * 1024, {
+          message: "File size must be less than 50MB",
+        })
+    )
+    .min(1, "At least one file is required")
+    .max(10, "Maximum 10 files allowed"),
+});
+
+type FileFormData = z.infer<typeof fileSchema>;
+
 export function FileUpload({ onUpload, onClose }: FileUploadProps) {
   const [files, setFiles] = useState<FileWithProgress[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const validateFile = (file: File): string | null => {
-    if (file.type !== "application/pdf") {
-      return "Only PDF files are supported";
-    }
-    if (file.size > 50 * 1024 * 1024) {
-      // 50MB limit
-      return "File size must be less than 50MB";
-    }
-    return null;
-  };
+  const {
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors },
+    clearErrors,
+    setError,
+  } = useForm<FileFormData>({
+    resolver: zodResolver(fileSchema),
+    defaultValues: {
+      files: [],
+    },
+  });
 
-  const handleFiles = (fileList: FileList) => {
-    const newFiles: FileWithProgress[] = [];
+  const watchedFiles = watch("files");
 
-    Array.from(fileList).forEach((file) => {
-      const error = validateFile(file);
-      newFiles.push({
+  const validateAndAddFiles = (fileList: FileList) => {
+    const newFiles = Array.from(fileList);
+    const currentFiles = files.map((f) => f.file);
+    const allFiles = [...currentFiles, ...newFiles];
+
+    // Clear previous errors
+    clearErrors();
+
+    // Validate with schema
+    const result = fileSchema.safeParse({ files: allFiles });
+
+    if (!result.success) {
+      // Handle validation errors
+      const errorMessages = result.error.issues.map((issue) => issue.message);
+      setError("files", { message: errorMessages[0] });
+      return;
+    }
+
+    // Add files with individual validation status
+    const validatedFiles: FileWithProgress[] = newFiles.map((file) => {
+      let error: string | null = null;
+
+      if (file.type !== "application/pdf") {
+        error = "Only PDF files are supported";
+      } else if (file.size > 50 * 1024 * 1024) {
+        error = "File size must be less than 50MB";
+      }
+
+      return {
         file,
         status: error ? "error" : "pending",
         error,
-      });
+      };
     });
 
-    setFiles((prev) => [...prev, ...newFiles]);
+    const updatedFiles = [...files, ...validatedFiles];
+    setFiles(updatedFiles);
+
+    // Update form value with valid files only
+    const validFiles = updatedFiles
+      .filter((f) => f.status === "pending")
+      .map((f) => f.file);
+    setValue("files", validFiles);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -58,29 +116,32 @@ export function FileUpload({ onUpload, onClose }: FileUploadProps) {
 
     const droppedFiles = e.dataTransfer.files;
     if (droppedFiles.length > 0) {
-      handleFiles(droppedFiles);
+      validateAndAddFiles(droppedFiles);
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (selectedFiles && selectedFiles.length > 0) {
-      handleFiles(selectedFiles);
+      validateAndAddFiles(selectedFiles);
     }
     // Reset input value to allow selecting the same file again
     e.target.value = "";
   };
 
   const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+    const updatedFiles = files.filter((_, i) => i !== index);
+    setFiles(updatedFiles);
 
-  const handleUpload = async () => {
-    const validFiles = files
+    // Update form value
+    const validFiles = updatedFiles
       .filter((f) => f.status === "pending")
       .map((f) => f.file);
+    setValue("files", validFiles);
+  };
 
-    if (validFiles.length === 0) return;
+  const onSubmit = async (data: FileFormData) => {
+    if (data.files.length === 0) return;
 
     setIsUploading(true);
 
@@ -92,7 +153,7 @@ export function FileUpload({ onUpload, onClose }: FileUploadProps) {
     );
 
     try {
-      await onUpload(validFiles);
+      await onUpload(data.files);
 
       // Mark files as success
       setFiles((prev) =>
@@ -100,6 +161,10 @@ export function FileUpload({ onUpload, onClose }: FileUploadProps) {
           f.status === "uploading" ? { ...f, status: "success" as const } : f
         )
       );
+
+      toast.success("Files uploaded successfully", {
+        description: `${data.files.length} file(s) have been uploaded to your data room.`,
+      });
 
       // Close modal after successful upload
       setTimeout(() => {
@@ -114,6 +179,12 @@ export function FileUpload({ onUpload, onClose }: FileUploadProps) {
             : f
         )
       );
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Upload failed";
+      toast.error("Upload failed", {
+        description: errorMessage,
+      });
     } finally {
       setIsUploading(false);
     }
@@ -131,7 +202,14 @@ export function FileUpload({ onUpload, onClose }: FileUploadProps) {
       maxWidth="2xl"
       maxHeight="max-h-[80vh]"
     >
-      <div className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Form validation errors */}
+        {errors.files && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{errors.files.message}</p>
+          </div>
+        )}
+
         {/* Drop Zone */}
         <div
           onDrop={handleDrop}
@@ -246,7 +324,7 @@ export function FileUpload({ onUpload, onClose }: FileUploadProps) {
                 Cancel
               </Button>
               <Button
-                onClick={handleUpload}
+                type="submit"
                 disabled={validFilesCount === 0 || isUploading}
               >
                 {isUploading ? "Uploading..." : "Upload Files"}
@@ -254,7 +332,7 @@ export function FileUpload({ onUpload, onClose }: FileUploadProps) {
             </div>
           </div>
         )}
-      </div>
+      </form>
     </BaseModal>
   );
 }

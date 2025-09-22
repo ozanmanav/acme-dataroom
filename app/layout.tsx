@@ -1,12 +1,15 @@
-import './globals.css';
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import "./globals.css";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { AuthProvider } from "@/components/auth/auth-provider";
+import { Toaster } from "@/components/ui/sonner";
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Data Room - Secure Document Repository',
-  description: 'Professional document management system with hierarchical organization',
+  title: "Data Room - Secure Document Repository",
+  description:
+    "Professional document management system with hierarchical organization",
 };
 
 export default function RootLayout({
@@ -16,7 +19,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
+      </body>
     </html>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BaseModal } from "./base-modal";
+import { toast } from "sonner";
 
 interface DeleteConfirmModalProps {
   itemName: string;
@@ -24,8 +25,19 @@ export function DeleteConfirmModal({
     try {
       setIsDeleting(true);
       await onConfirm();
+      toast.success(
+        `${itemType === "folder" ? "Folder" : "File"} deleted successfully`,
+        {
+          description: `"${itemName}" has been permanently deleted.`,
+        }
+      );
       onClose();
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : `Failed to delete ${itemType}`;
+      toast.error(`Failed to delete ${itemType}`, {
+        description: errorMessage,
+      });
       console.error(`Failed to delete ${itemType}:`, error);
     } finally {
       setIsDeleting(false);
